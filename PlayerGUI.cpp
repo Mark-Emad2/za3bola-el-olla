@@ -1,12 +1,13 @@
-#include <JuceHeader.h>
+﻿#include <JuceHeader.h>
 #include "PlayerGUI.h"
-
+using namespace std;
+using namespace juce;
 void PlayerGUI::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     playerAudio.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
-void PlayerGUI::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
+void PlayerGUI::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     playerAudio.getNextAudioBlock(bufferToFill);
 }
@@ -42,27 +43,28 @@ void PlayerGUI::resized()
     loadButton.setBounds(20, y, 100, 40);
     restartButton.setBounds(140, y, 80, 40);
     stopButton.setBounds(240, y, 80, 40);
-    /*prevButton.setBounds(340, y, 80, 40);
-    nextButton.setBounds(440, y, 80, 40);*/
+    //prevButton.setBounds(340, y, 80, 40);
+    //nextButton.setBounds(440, y, 80, 40);
 
     volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
 }
-void PlayerGUI::buttonClicked(juce::Button* button)
+void PlayerGUI::buttonClicked(Button* button)
 {
+
     if (button == &loadButton)
     {
-        juce::FileChooser chooser("Select audio files...",
-            juce::File{},
+        FileChooser chooser("Select audio files...",
+            File{},
             "*.wav;*.mp3");
 
-        fileChooser = std::make_unique<juce::FileChooser>(
+        fileChooser = make_unique<FileChooser>(
             "Select an audio file...",
-            juce::File{},
+            File{},
             "*.wav;*.mp3");
 
         fileChooser->launchAsync(
-            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
-            [this](const juce::FileChooser& fc)
+            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
+            [this](const FileChooser& fc)
             {
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
@@ -72,26 +74,32 @@ void PlayerGUI::buttonClicked(juce::Button* button)
             });
     }
 
-    if (button == &restartButton)
+    else if (button == &restartButton)
     {
+        playerAudio.setPosition(0.0);
         playerAudio.start();
     }
 
-    if (button == &stopButton)
+    else if (button == &stopButton)
     {
         playerAudio.stop();
-        playerAudio.setPosition(0.0);
     }
 
 
+
 }
 
-void PlayerGUI::sliderValueChanged(juce::Slider* slider)
+void PlayerGUI::sliderValueChanged(Slider* slider)
 {
+    /*volumeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft,
+        false,
+        0,
+        0);*/ // هنا المربع القيمة اللي جواه مش ظاهره عندي معرفش ليه رغم اني مغيرتش حاجه المهم ده كود يشيل الصنةدق كله
+
     if (slider == &volumeSlider)
         playerAudio.setGain((float)slider->getValue());
 }
-void PlayerGUI::paint(juce::Graphics& g)
+void PlayerGUI::paint(Graphics& g)
 {
-    g.fillAll(juce::Colours::darkgrey);
+    g.fillAll(Colours::black);
 }

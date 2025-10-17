@@ -1,5 +1,7 @@
 #pragma once							// PlayerAudio.h
 #include <JuceHeader.h>
+using namespace std;
+using namespace juce;
 class PlayerAudio
 {
 public:
@@ -7,10 +9,10 @@ public:
     ~PlayerAudio();
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
+    void getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
 
-    bool loadFile(const juce::File& file);
+    bool loadFile(const File& file);
     void start();
     void stop();
     void setGain(float gain);
@@ -19,9 +21,9 @@ public:
     double getLength() const;
 
 private:
-    juce::AudioFormatManager formatManager;
-    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
-    juce::AudioTransportSource transportSource;
+    AudioFormatManager formatManager;
+    unique_ptr<AudioFormatReaderSource> readerSource;
+    AudioTransportSource transportSource;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 };

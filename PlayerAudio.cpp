@@ -1,25 +1,22 @@
 ﻿#include <JuceHeader.h>
 #include "PlayerAudio.h"
-
+using namespace std;
+using namespace juce;
 
 PlayerAudio::PlayerAudio()
 {
     formatManager.registerBasicFormats();
-    //transportSource.setGain(0.5);   
 }
 PlayerAudio::~PlayerAudio()
 {
 }
-//PlayerAudio::~PlayerAudio()
-//{
-//    transportSource.setSource(nullptr);
-//}
+
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
-void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
+void PlayerAudio::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     transportSource.getNextAudioBlock(bufferToFill);
 }
@@ -29,7 +26,7 @@ void PlayerAudio::releaseResources()
     transportSource.releaseResources();
 }
 
-bool PlayerAudio::loadFile(const juce::File& file)
+bool PlayerAudio::loadFile(const File& file)
 {
 
     if (file.existsAsFile()) {
@@ -42,7 +39,7 @@ bool PlayerAudio::loadFile(const juce::File& file)
             readerSource.reset();
 
             // Create new reader source
-            readerSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+            readerSource = make_unique<AudioFormatReaderSource>(reader, true);
 
             // Attach safely
             transportSource.setSource(readerSource.get(),

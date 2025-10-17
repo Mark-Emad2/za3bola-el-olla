@@ -4,9 +4,9 @@
 using namespace juce;
 using namespace std;
 
-class PlayerGUI : public juce::Component,
-    public juce::Button::Listener,
-    public juce::Slider::Listener
+class PlayerGUI : public Component,
+    public Button::Listener,
+    public Slider::Listener
 {
 public:
     PlayerGUI();
@@ -15,24 +15,26 @@ public:
     void resized() override;
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
+    void getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
-    void paint(juce::Graphics& g) override;
+    void paint(Graphics& g) override;
 
 private:
     PlayerAudio playerAudio;
 
     // GUI elements
-    juce::TextButton loadButton{ "Load File" };
-    juce::TextButton restartButton{ "Restart" };
-    juce::TextButton stopButton{ "Stop" };
-    juce::Slider volumeSlider;
+    TextButton loadButton{ "Load File" };
+    TextButton restartButton{ "Restart" };
+    TextButton stopButton{ "Stop" };
+    //TextButton loopButton{ "Loop" };
+    Slider volumeSlider;
 
-    std::unique_ptr<juce::FileChooser> fileChooser;
+
+    unique_ptr<FileChooser> fileChooser;
 
     // Event handlers
-    void buttonClicked(juce::Button* button) override;
-    void sliderValueChanged(juce::Slider* slider) override;
+    void buttonClicked(Button* button) override;
+    void sliderValueChanged(Slider* slider) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
