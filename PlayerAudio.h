@@ -20,6 +20,7 @@ public:
     double getPosition() const;
     double getLength() const;
 
+
 private:
     AudioFormatManager formatManager;
     unique_ptr<AudioFormatReaderSource> readerSource;
@@ -27,4 +28,3 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 };
-

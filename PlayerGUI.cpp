@@ -19,7 +19,7 @@ void PlayerGUI::releaseResources()
 PlayerGUI::PlayerGUI()
 {
     // Add buttons
-    for (auto* btn : { &loadButton, &restartButton , &stopButton })
+    for (auto* btn : { &loadButton, &restartButton , &stopButton , &loopButton })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -31,8 +31,11 @@ PlayerGUI::PlayerGUI()
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
-
-
+    loopButton.setButtonText("Loop\nOOF");
+    loopButton.setColour(TextButton::buttonColourId, Colours::red);
+    loopButton.repaint();
+    startTimerHz(10);
+	loopButton.setClickingTogglesState(true);
 }
 PlayerGUI::~PlayerGUI()
 {
@@ -43,6 +46,7 @@ void PlayerGUI::resized()
     loadButton.setBounds(20, y, 100, 40);
     restartButton.setBounds(140, y, 80, 40);
     stopButton.setBounds(240, y, 80, 40);
+	loopButton.setBounds(340, y, 80, 40);
     //prevButton.setBounds(340, y, 80, 40);
     //nextButton.setBounds(440, y, 80, 40);
 
@@ -60,7 +64,7 @@ void PlayerGUI::buttonClicked(Button* button)
         fileChooser = make_unique<FileChooser>(
             "Select an audio file...",
             File{},
-            "*.wav;*.mp3");
+            "*.wav;*.mp3;*.dat");
 
         fileChooser->launchAsync(
             FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
@@ -84,6 +88,27 @@ void PlayerGUI::buttonClicked(Button* button)
     {
         playerAudio.stop();
     }
+    else if (button == &loopButton) {
+        if (loopButton.getToggleState())
+        {
+            loopButton.setButtonText("Loop\nON");
+            loopButton.setColour(TextButton::buttonOnColourId, Colours::green);
+            loopButton.repaint();
+        }
+        else {
+            loopButton.setButtonText("Loop\nOFF");
+            loopButton.setColour(TextButton::buttonColourId, Colours::red);
+			loopButton.repaint();
+        }
+        
+            
+        
+        
+            
+		
+        
+    }
+    
 
 
 
@@ -98,8 +123,24 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
 
     if (slider == &volumeSlider)
         playerAudio.setGain((float)slider->getValue());
+
 }
 void PlayerGUI::paint(Graphics& g)
 {
     g.fillAll(Colours::black);
+}
+
+void PlayerGUI::timerCallback()
+{
+    if (loopButton.getToggleState())
+    {
+        double currentPos = playerAudio.getPosition();
+        double totalLength = playerAudio.getLength();
+        if (totalLength > 0 && currentPos >= totalLength)
+        {
+            playerAudio.setPosition(0.0);
+			playerAudio.start();
+        }
+    }
+
 }

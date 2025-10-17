@@ -6,7 +6,8 @@ using namespace std;
 
 class PlayerGUI : public Component,
     public Button::Listener,
-    public Slider::Listener
+    public Slider::Listener,
+    public Timer
 {
 public:
     PlayerGUI();
@@ -18,6 +19,7 @@ public:
     void getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
     void paint(Graphics& g) override;
+    void timerCallback() override;
 
 private:
     PlayerAudio playerAudio;
@@ -26,7 +28,7 @@ private:
     TextButton loadButton{ "Load File" };
     TextButton restartButton{ "Restart" };
     TextButton stopButton{ "Stop" };
-    TextButton loopButton{ "Loop" };
+    TextButton loopButton;
     Slider volumeSlider;
     Slider positionSlider;
 
