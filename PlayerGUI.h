@@ -32,7 +32,7 @@ private:
     Slider volumeSlider;
     Slider positionSlider;
 
-
+    //hi
 
     unique_ptr<FileChooser> fileChooser;
 
