@@ -1,7 +1,7 @@
 #include "MainComponent.h"
 using namespace juce;
 using namespace std;
-
+//==============================================================================
 MainComponent::MainComponent() {
 
     addAndMakeVisible(player1);
