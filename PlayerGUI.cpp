@@ -19,7 +19,7 @@ void PlayerGUI::releaseResources()
 PlayerGUI::PlayerGUI()
 {
     // Add buttons
-    for (auto* btn : { &loadButton, &restartButton , &stopButton , &loopButton })
+    for (auto* btn : { &loadButton, &restartButton , &stopButton , &loopButton, &muteButton })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -48,7 +48,7 @@ void PlayerGUI::resized()
     stopButton.setBounds(240, y, 80, 40);
 	loopButton.setBounds(340, y, 80, 40);
     //prevButton.setBounds(340, y, 80, 40);
-    //nextButton.setBounds(440, y, 80, 40);
+    muteButton.setBounds(440, y, 80, 40);
 
     volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
 }
@@ -101,12 +101,17 @@ void PlayerGUI::buttonClicked(Button* button)
 			loopButton.repaint();
         }
         
-            
-        
-        
-            
-		
-        
+               
+    }
+    else if (button == &muteButton) {
+        playerAudio.mute();
+
+        if (playerAudio.muted()) {
+            muteButton.setButtonText("unmute");
+        }
+        else {
+            muteButton.setButtonText("mute");
+        }
     }
     
 
@@ -122,8 +127,13 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
         0);*/ // هنا المربع القيمة اللي جواه مش ظاهره عندي معرفش ليه رغم اني مغيرتش حاجه المهم ده كود يشيل الصنةدق كله
 
     if (slider == &volumeSlider)
-        playerAudio.setGain((float)slider->getValue());
+        float gainValue = (float)volumeSlider.getValue();
+    playerAudio.setGain((float)slider->getValue());
+    if (playerAudio.muted() && gainValue > 0.0f) {
 
+        playerAudio.mute();
+        muteButton.setButtonText("Mute");
+    }
 }
 void PlayerGUI::paint(Graphics& g)
 {

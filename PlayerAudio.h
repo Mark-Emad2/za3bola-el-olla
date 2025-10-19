@@ -19,12 +19,18 @@ public:
     void setPosition(double pos);
     double getPosition() const;
     double getLength() const;
+    void mute();
+    bool muted()const;
+    float get_current_gain()const;
+
 
 
 private:
     AudioFormatManager formatManager;
     unique_ptr<AudioFormatReaderSource> readerSource;
     AudioTransportSource transportSource;
+    float last_value = 1.0f;
+    bool ismuted = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 };

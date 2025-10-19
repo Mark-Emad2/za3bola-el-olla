@@ -29,6 +29,7 @@ private:
     TextButton restartButton{ "Restart" };
     TextButton stopButton{ "Stop" };
     TextButton loopButton;
+    TextButton muteButton{ "Mute" };
     Slider volumeSlider;
     Slider positionSlider;
 
