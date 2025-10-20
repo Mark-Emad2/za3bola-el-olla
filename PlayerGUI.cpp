@@ -53,7 +53,7 @@ void PlayerGUI::resized()
 
     loopButton.setBounds(250, y, 80, 40);
 
-    volumeSlider.setBounds(getWidth() - 50, 100, 30, 200);
+    volumeSlider.setBounds(getWidth() - 110, 100, 100, 200);
     //volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
     volumeSlider.setColour(Slider::trackColourId, Colours::darkgrey);
 

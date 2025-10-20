@@ -26,7 +26,7 @@ private:
 
     // GUI elements
     TextButton loadButton{ "Load File" };
-    TextButton restartButton{ "Start" };
+    TextButton restartButton{ "Retart" };
     TextButton stopButton{ "Stop" };
     TextButton loopButton;
     TextButton Pause_ResumeButton{ "Pause" };
