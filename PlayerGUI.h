@@ -26,11 +26,11 @@ private:
 
     // GUI elements
     TextButton loadButton{ "Load File" };
-    TextButton restartButton{ "Retart" };
+    TextButton restartButton{ "|< Start" };
     TextButton stopButton{ "Stop" };
     TextButton loopButton;
-    TextButton Pause_ResumeButton{ "Pause" };
-    TextButton EndButton{ "End" };
+    TextButton Pause_PlayButton{ "Pause ||" };
+    TextButton EndButton{ "End >|" };
     TextButton muteButton{ "Mute" };
     Slider volumeSlider;
     Slider positionSlider;
