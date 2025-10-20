@@ -65,11 +65,10 @@ void PlayerAudio::stop()
 }
 void PlayerAudio::setGain(float gain)
 {
-    transportSource.setGain(gain);
-    if (!ismuted) {
-        last_value = gain;
-    }
-
+    gain = jlimit(0.0f, 1.0f, gain);
+    last_value = gain;
+    if (!ismuted)
+        transportSource.setGain(gain);
 }
 
 void PlayerAudio::setPosition(double pos)
@@ -101,7 +100,7 @@ bool PlayerAudio::muted() const
 }
 float PlayerAudio::get_current_gain() const
 {
-    return transportSource.getGain();
+    return ismuted ? last_value : transportSource.getGain();
 }
 
 bool PlayerAudio::isPlaying() const
