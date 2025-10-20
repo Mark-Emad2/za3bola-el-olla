@@ -48,8 +48,10 @@ bool PlayerAudio::loadFile(const File& file)
                 reader->sampleRate);
             transportSource.start();
         }
+        return true;
     }
-    return true;
+    else
+        return false;
 }
 
 void PlayerAudio::start()
@@ -67,7 +69,9 @@ void PlayerAudio::setGain(float gain)
     if (!ismuted) {
         ismuted = gain;
     }
+
 }
+
 void PlayerAudio::setPosition(double pos)
 {
     transportSource.setPosition(pos);
@@ -100,6 +104,8 @@ float PlayerAudio::get_current_gain() const
     return transportSource.getGain();
 }
 
-
-
+bool PlayerAudio::isPlaying() const
+{
+    return transportSource.isPlaying();
+}
 

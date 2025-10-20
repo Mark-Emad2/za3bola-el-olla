@@ -26,9 +26,11 @@ private:
 
     // GUI elements
     TextButton loadButton{ "Load File" };
-    TextButton restartButton{ "Restart" };
+    TextButton restartButton{ "Start" };
     TextButton stopButton{ "Stop" };
     TextButton loopButton;
+    TextButton Pause_ResumeButton{ "Pause" };
+    TextButton EndButton{ "End" };
     TextButton muteButton{ "Mute" };
     Slider volumeSlider;
     Slider positionSlider;
@@ -36,6 +38,7 @@ private:
     //hi
 
     unique_ptr<FileChooser> fileChooser;
+    std::unique_ptr<juce::Drawable> playIconDrawable;
 
     // Event handlers
     void buttonClicked(Button* button) override;

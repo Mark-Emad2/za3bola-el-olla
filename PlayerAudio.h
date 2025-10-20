@@ -22,7 +22,7 @@ public:
     void mute();
     bool muted()const;
     float get_current_gain()const;
-
+    bool isPlaying() const;
 
 
 private:
