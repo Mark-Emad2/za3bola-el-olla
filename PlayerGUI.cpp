@@ -159,10 +159,6 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
     {
         float gainValue = (float)slider->getValue();
         playerAudio.setGain(gainValue);
-        if (playerAudio.muted() && gainValue > 0.0f) {
-            playerAudio.mute();
-            muteButton.setButtonText("Mute");
-        }
     }
 }
 

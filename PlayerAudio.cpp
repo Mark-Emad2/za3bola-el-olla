@@ -67,7 +67,7 @@ void PlayerAudio::setGain(float gain)
 {
     transportSource.setGain(gain);
     if (!ismuted) {
-        ismuted = gain;
+        last_value = gain;
     }
 
 }
