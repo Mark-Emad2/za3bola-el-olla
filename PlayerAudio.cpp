@@ -65,7 +65,6 @@ void PlayerAudio::stop()
 }
 void PlayerAudio::setGain(float gain)
 {
-    gain = jlimit(0.0f, 1.0f, gain);
     last_value = gain;
     if (!ismuted)
         transportSource.setGain(gain);
