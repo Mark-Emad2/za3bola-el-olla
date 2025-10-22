@@ -25,12 +25,21 @@ PlayerGUI::PlayerGUI()
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
+
+
+
     Pause_PlayButton.setButtonText("Play");
     Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
     Pause_PlayButton.repaint();
     // Volume slider
-    volumeSlider.setRange(0.0, 1.0, 0.01);
-    volumeSlider.setValue(0.5);
+
+    volumeSlider.setRange(0, 100, 1);
+    volumeSlider.setValue(50);
+    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft,
+        false,
+        60,
+        20);
+    volumeSlider.setTextValueSuffix("%");
     volumeSlider.setSliderStyle(Slider::LinearVertical);
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
@@ -164,19 +173,18 @@ void PlayerGUI::buttonClicked(Button* button)
 
 void PlayerGUI::sliderValueChanged(Slider* slider)
 {
-    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft,
-        false,
-        0,
-        0);
+
+
 
 
     if (slider == &volumeSlider)
     {
         float gainValue = (float)slider->getValue();
-        playerAudio.setGain(gainValue);
+        playerAudio.setGain(gainValue / 100);
 
     }
 }
+
 
 
 void PlayerGUI::paint(Graphics& g)
