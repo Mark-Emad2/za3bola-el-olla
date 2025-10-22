@@ -46,6 +46,7 @@ bool PlayerAudio::loadFile(const File& file)
                 0,
                 nullptr,
                 reader->sampleRate);
+
             transportSource.start();
         }
         return true;
@@ -68,6 +69,7 @@ void PlayerAudio::setGain(float gain)
     last_value = gain;
     if (!ismuted)
         transportSource.setGain(gain);
+
 }
 
 void PlayerAudio::setPosition(double pos)

@@ -19,12 +19,15 @@ void PlayerGUI::releaseResources()
 PlayerGUI::PlayerGUI()
 {
     // Add buttons
-    for (auto* btn : { &loadButton, &restartButton , &stopButton , &loopButton,&Pause_ResumeButton,&EndButton,&muteButton })
+
+    for (auto* btn : { &loadButton, &restartButton , &stopButton , &loopButton,&Pause_PlayButton,&EndButton,&muteButton })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
-
+    Pause_PlayButton.setButtonText("Play");
+    Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
+    Pause_PlayButton.repaint();
     // Volume slider
     volumeSlider.setRange(0.0, 1.0, 0.01);
     volumeSlider.setValue(0.5);
@@ -38,9 +41,6 @@ PlayerGUI::PlayerGUI()
     startTimerHz(10);
     loopButton.setClickingTogglesState(true);
 
-    Pause_ResumeButton.addListener(this);
-    Pause_ResumeButton.setColour(TextButton::buttonColourId, Colours::green);
-    Pause_ResumeButton.repaint();
 }
 PlayerGUI::~PlayerGUI()
 {
@@ -59,7 +59,7 @@ void PlayerGUI::resized()
 
 
     restartButton.setBounds(250, 350, 80, 40);
-    Pause_ResumeButton.setBounds(350, 350, 80, 40);
+    Pause_PlayButton.setBounds(350, 350, 80, 40);
     stopButton.setBounds(450, 350, 80, 40);
     EndButton.setBounds(550, 350, 80, 40);
 
@@ -88,6 +88,9 @@ void PlayerGUI::buttonClicked(Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
                     playerAudio.loadFile(file);
+                    Pause_PlayButton.setButtonText("pause ||");
+                    Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
+                    Pause_PlayButton.repaint();
                 }
 
             });
@@ -96,12 +99,19 @@ void PlayerGUI::buttonClicked(Button* button)
     else if (button == &restartButton)
     {
         playerAudio.setPosition(0.0);
+        Pause_PlayButton.setButtonText("pause ||");
+        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
+        Pause_PlayButton.repaint();
+
         playerAudio.start();
     }
 
     else if (button == &stopButton)
     {
         playerAudio.stop();
+        Pause_PlayButton.setButtonText("Play");
+        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
+        Pause_PlayButton.repaint();
     }
     else if (button == &loopButton) {
         if (loopButton.getToggleState())
@@ -126,20 +136,25 @@ void PlayerGUI::buttonClicked(Button* button)
             muteButton.setButtonText("mute");
         }
     }
-    else if (button == &Pause_ResumeButton) {
+    else if (button == &Pause_PlayButton) {
         if (playerAudio.isPlaying()) {
             playerAudio.stop();
-            Pause_ResumeButton.setButtonText("Resume");
-            Pause_ResumeButton.setColour(TextButton::buttonColourId, Colours::orange);
+            Pause_PlayButton.setButtonText("Play");
+            Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
         }
         else {
             playerAudio.start();
-            Pause_ResumeButton.setButtonText("Pause");
-            Pause_ResumeButton.setColour(TextButton::buttonColourId, Colours::green);
+            Pause_PlayButton.setButtonText("Pause ||");
+            Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
         }
+        Pause_PlayButton.repaint();
     }//⏸️⏯️
     else if (button == &EndButton) {
         playerAudio.setPosition(playerAudio.getLength());
+
+        Pause_PlayButton.setButtonText("Play");
+        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
+        Pause_PlayButton.repaint();
     }
 
 
@@ -149,16 +164,17 @@ void PlayerGUI::buttonClicked(Button* button)
 
 void PlayerGUI::sliderValueChanged(Slider* slider)
 {
-    /*volumeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft,
+    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxLeft,
         false,
         0,
-        0);*/ // هنا المربع القيمة اللي جواه مش ظاهره عندي معرفش ليه رغم اني مغيرتش حاجه المهم ده كود يشيل الصنةدق كله
+        0);
 
 
     if (slider == &volumeSlider)
     {
         float gainValue = (float)slider->getValue();
         playerAudio.setGain(gainValue);
+
     }
 }
 
@@ -168,17 +184,40 @@ void PlayerGUI::paint(Graphics& g)
     g.fillAll(Colours::black);
 }
 
+//void PlayerGUI::timerCallback()
+//{
+//    if (loopButton.getToggleState())
+//    {
+//        double currentPos = playerAudio.getPosition();
+//        double totalLength = playerAudio.getLength();
+//
+//        if (totalLength > 0 && currentPos >= totalLength)
+//        {
+//            playerAudio.setPosition(0.0);
+//            playerAudio.start();
+//        }
+//    }
+//
+//}
 void PlayerGUI::timerCallback()
 {
-    if (loopButton.getToggleState())
+    double currentPos = playerAudio.getPosition();
+    double totalLength = playerAudio.getLength();
+
+    if (totalLength > 0 && currentPos >= totalLength)
     {
-        double currentPos = playerAudio.getPosition();
-        double totalLength = playerAudio.getLength();
-        if (totalLength > 0 && currentPos >= totalLength)
+        playerAudio.stop();
+        Pause_PlayButton.setButtonText("Play");
+        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
+        Pause_PlayButton.repaint();
+
+        if (loopButton.getToggleState())
         {
             playerAudio.setPosition(0.0);
             playerAudio.start();
+            Pause_PlayButton.setButtonText("Pause");
+            Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
+            Pause_PlayButton.repaint();
         }
     }
-
 }
