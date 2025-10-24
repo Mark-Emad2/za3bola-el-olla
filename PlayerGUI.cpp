@@ -33,9 +33,6 @@ PlayerGUI::PlayerGUI()
     infoLabel.setFont(Font("Arial", 16.0f, Font::bold));
 
 
-    Pause_PlayButton.setButtonText("Play");
-    Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
-    Pause_PlayButton.repaint();
     // Volume slider
 
     volumeSlider.setRange(0, 100, 1);
@@ -55,10 +52,102 @@ PlayerGUI::PlayerGUI()
     startTimerHz(10);
     loopButton.setClickingTogglesState(true);
 
+    sessionFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("player_session.xml");
+    loadLastState();
+
+    Pause_PlayButton.setButtonText("Play");
+    Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
+    Pause_PlayButton.repaint();
+
 }
 PlayerGUI::~PlayerGUI()
 {
+
+    saveLastState();
+
 }
+void PlayerGUI::updateLabel(const File& file) {
+    std::unique_ptr<AudioFormatReader> reader(formatManager.createReaderFor(file));
+
+    if (reader != nullptr) {
+        auto metadata = reader->metadataValues;
+        if (metadata.size() > 0) {
+
+            String title = metadata.getValue("title", metadata.getValue("TITLE", "unKnown"));
+            // السطر ده معمول عشان لو الميتاداتا جواها العنوان مكتوب بكابيتال او سمول 
+            // ممكن اعملى زيه الى تحت نفس الفكره
+            /*string title = metadata.getValue("title","");
+            if (title.empty()) {
+                title = metadata.getValue("TITLE","unKnown");
+            }*/
+            String artist = metadata.getValue("artist", metadata.getValue("ARTIST", "unknown"));
+
+            double duration = reader->lengthInSamples / reader->sampleRate;
+            int mins = static_cast<int>(duration / 60);
+            int secs = static_cast<int>(round(duration)) % 60;
+
+            displayText = "Title: " + title +
+                "\nArtist: " + artist +
+                "\nDuration: " + String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
+
+
+        }
+        else {
+            displayText = "File: " + file.getFileName();
+        }
+
+        infoLabel.setText(displayText, dontSendNotification);
+        // مترسلش نوتفيكشن ده معمول عشان مش عاوز اعرف اليوزر ان فيه تغير حصل فى التيكست بتاع الليبل
+
+    }
+    else {
+        infoLabel.setText("Failed to load audio file.", dontSendNotification);
+    }
+
+
+
+}
+
+
+void PlayerGUI::saveLastState()
+{
+    File currentFile = playerAudio.getCurrentFile();
+    appState.setProperty("lastFile", currentFile.getFullPathName(), nullptr);
+    appState.setProperty("lastPosition", playerAudio.getPosition(), nullptr);
+    appState.setProperty("lastVolume", volumeSlider.getValue(), nullptr);
+
+    unique_ptr<XmlElement> xml(appState.createXml());
+
+    if (xml) {
+        xml->writeTo(sessionFile);
+    }
+
+}
+
+void PlayerGUI::loadLastState() {
+
+    if (sessionFile.existsAsFile()) {
+
+        //playerAudio.stop();
+
+        unique_ptr<XmlElement> xml(parseXML(sessionFile));
+        if (xml) {
+            appState = ValueTree::fromXml(*xml);
+            String lastFilePath = appState.getProperty("lastFile").toString();
+            double lastPosition = (double)appState.getProperty("lastPosition");
+            double lastVolume = (double)appState.getProperty("lastVolume", 50);
+
+            if (!lastFilePath.isEmpty()) {
+
+                playerAudio.loadFile(File(lastFilePath));
+                playerAudio.setPosition(lastPosition);
+                volumeSlider.setValue(lastVolume, dontSendNotification);
+                updateLabel(File(lastFilePath));
+            }
+        }
+    }
+}
+
 void PlayerGUI::resized()
 {
     int y = 20;
@@ -96,8 +185,7 @@ void PlayerGUI::buttonClicked(Button* button)
         fileChooser = make_unique<FileChooser>(
             "Select an audio file...",
             File{},
-            "*.wav;*.mp3;*.dat");
-
+            "*.wav;*.mp3");
         fileChooser->launchAsync(
             FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
             [this](const FileChooser& fc)
@@ -108,41 +196,13 @@ void PlayerGUI::buttonClicked(Button* button)
                     Pause_PlayButton.setButtonText("pause ||");
                     Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
                     Pause_PlayButton.repaint();
-                    std::unique_ptr<AudioFormatReader> reader(formatManager.createReaderFor(file));
-                    if (reader != nullptr) {
-                        auto metadata = reader->metadataValues;
-                        if (metadata.size() > 0) {
 
-                            String title = metadata.getValue("title", metadata.getValue("TITLE", "unKnown"));
-                            // السطر ده معمول عشان لو الميتاداتا جواها العنوان مكتوب بكابيتال او سمول 
-                            // ممكن اعملى زيه الى تحت نفس الفكره
-                            /*string title = metadata.getValue("title","");
-                            if (title.empty()) {
-                                title = metadata.getValue("TITLE","unKnown");
-                            }*/
-                            String artist = metadata.getValue("artist", metadata.getValue("ARTIST", "unknown"));
+                    playerAudio.start();
 
-                            double duration = reader->lengthInSamples / reader->sampleRate;
-                            int mins = static_cast<int>(duration / 60);
-                            int secs = static_cast<int>(round(duration)) % 60;
-
-                            displayText = "Title: " + title +
-                                "\nArtist: " + artist +
-                                "\nDuration: " + String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
+                    saveLastState();
+                    updateLabel(file);
 
 
-                        }
-                        else {
-                            displayText = "File: " + file.getFileName();
-                        }
-
-                        infoLabel.setText(displayText, dontSendNotification);
-                        // مترسلش نوتفيكشن ده معمول عشان مش عاوز اعرف اليوزر ان فيه تغير حصل فى التيكست بتاع الليبل
-
-                    }
-                    else {
-                        infoLabel.setText("Failed to load audio file.", dontSendNotification);
-                    }
                 }
 
             });
@@ -236,21 +296,7 @@ void PlayerGUI::paint(Graphics& g)
     g.fillAll(Colours::black);
 }
 
-//void PlayerGUI::timerCallback()
-//{
-//    if (loopButton.getToggleState())
-//    {
-//        double currentPos = playerAudio.getPosition();
-//        double totalLength = playerAudio.getLength();
-//
-//        if (totalLength > 0 && currentPos >= totalLength)
-//        {
-//            playerAudio.setPosition(0.0);
-//            playerAudio.start();
-//        }
-//    }
-//
-//}
+
 void PlayerGUI::timerCallback()
 {
     double currentPos = playerAudio.getPosition();

@@ -2,7 +2,7 @@
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 using namespace juce;
-using namespace std;
+//using namespace std;
 
 class PlayerGUI : public Component,
     public Button::Listener,
@@ -12,6 +12,10 @@ class PlayerGUI : public Component,
 public:
     PlayerGUI();
     ~PlayerGUI() override;
+
+    void updateLabel(const File& file);
+    void updateLabelUsingFFprobe(const File& file);
+
 
     void resized() override;
 
@@ -49,6 +53,14 @@ private:
     Label infoLabel;
 
     String displayText; //cpp على فكره ممكن احطه عادى ف ملف ال 
+
+
+
+    File sessionFile;
+    ValueTree appState{ "AppState" };
+    void saveLastState();
+    void loadLastState();
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };

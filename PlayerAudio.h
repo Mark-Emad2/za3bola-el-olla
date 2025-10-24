@@ -24,6 +24,9 @@ public:
     float get_current_gain()const;
     bool isPlaying() const;
 
+    File getCurrentFile() const;
+
+
 
 private:
     AudioFormatManager formatManager;
@@ -31,6 +34,8 @@ private:
     AudioTransportSource transportSource;
     float last_value = 1.0f;
     bool ismuted = false;
+
+    File currentFile;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
 };
