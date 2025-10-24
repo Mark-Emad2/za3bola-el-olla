@@ -25,7 +25,12 @@ PlayerGUI::PlayerGUI()
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
+    formatManager.registerBasicFormats();
 
+    addAndMakeVisible(infoLabel);
+    infoLabel.setJustificationType(Justification::centredLeft);
+    infoLabel.setText("No File Loaded", dontSendNotification);
+    infoLabel.setFont(Font("Arial", 16.0f, Font::bold));
 
 
     Pause_PlayButton.setButtonText("Play");
@@ -75,6 +80,9 @@ void PlayerGUI::resized()
     //prevButton.setBounds(340, y, 80, 40);
     muteButton.setBounds(440, y, 80, 40);
 
+    infoLabel.setBounds(20, 100, getWidth() - 40, 60);
+
+
 }
 void PlayerGUI::buttonClicked(Button* button)
 {
@@ -100,9 +108,45 @@ void PlayerGUI::buttonClicked(Button* button)
                     Pause_PlayButton.setButtonText("pause ||");
                     Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
                     Pause_PlayButton.repaint();
+                    std::unique_ptr<AudioFormatReader> reader(formatManager.createReaderFor(file));
+                    if (reader != nullptr) {
+                        auto metadata = reader->metadataValues;
+                        if (metadata.size() > 0) {
+
+                            String title = metadata.getValue("title", metadata.getValue("TITLE", "unKnown"));
+                            // السطر ده معمول عشان لو الميتاداتا جواها العنوان مكتوب بكابيتال او سمول 
+                            // ممكن اعملى زيه الى تحت نفس الفكره
+                            /*string title = metadata.getValue("title","");
+                            if (title.empty()) {
+                                title = metadata.getValue("TITLE","unKnown");
+                            }*/
+                            String artist = metadata.getValue("artist", metadata.getValue("ARTIST", "unknown"));
+
+                            double duration = reader->lengthInSamples / reader->sampleRate;
+                            int mins = static_cast<int>(duration / 60);
+                            int secs = static_cast<int>(round(duration)) % 60;
+
+                            displayText = "Title: " + title +
+                                "\nArtist: " + artist +
+                                "\nDuration: " + String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
+
+
+                        }
+                        else {
+                            displayText = "File: " + file.getFileName();
+                        }
+
+                        infoLabel.setText(displayText, dontSendNotification);
+                        // مترسلش نوتفيكشن ده معمول عشان مش عاوز اعرف اليوزر ان فيه تغير حصل فى التيكست بتاع الليبل
+
+                    }
+                    else {
+                        infoLabel.setText("Failed to load audio file.", dontSendNotification);
+                    }
                 }
 
             });
+
     }
 
     else if (button == &restartButton)

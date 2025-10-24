@@ -1,4 +1,4 @@
-#pragma once						// PlayerGUI.h
+﻿#pragma once						// PlayerGUI.h
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 using namespace juce;
@@ -34,15 +34,21 @@ private:
     TextButton muteButton{ "Mute" };
     Slider volumeSlider;
     Slider positionSlider;
+    AudioFormatManager formatManager;
 
     //hi
 
     unique_ptr<FileChooser> fileChooser;
     std::unique_ptr<juce::Drawable> playIconDrawable;
 
+
     // Event handlers
     void buttonClicked(Button* button) override;
     void sliderValueChanged(Slider* slider) override;
+
+    Label infoLabel;
+
+    String displayText; //cpp على فكره ممكن احطه عادى ف ملف ال 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
