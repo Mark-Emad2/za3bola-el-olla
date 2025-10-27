@@ -69,7 +69,7 @@ PlayerGUI::PlayerGUI()
     //دي تخص  التايمر
     startTimerHz(10);
 
-    sessionFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory).getChildFile("player_session.xml");
+    sessionFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("player_session.xml");
     loadLastState();
 
 
