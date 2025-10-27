@@ -14,7 +14,7 @@ public:
     ~PlayerGUI() override;
 
     void updateLabel(const File& file);
-    void updateLabelUsingFFprobe(const File& file);
+    //void updateLabelUsingFFprobe(const File& file);// ما هذا
 
 
     void resized() override;
@@ -38,9 +38,10 @@ private:
     TextButton muteButton{ "Mute" };
     Slider volumeSlider;
     Slider positionSlider;
+    Label poslabel;
+    Label endPos;
     AudioFormatManager formatManager;
 
-    //hi
 
     unique_ptr<FileChooser> fileChooser;
     std::unique_ptr<juce::Drawable> playIconDrawable;

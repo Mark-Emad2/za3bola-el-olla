@@ -33,6 +33,12 @@ PlayerGUI::PlayerGUI()
     infoLabel.setFont(Font("Arial", 16.0f, Font::bold));
 
 
+    addAndMakeVisible(poslabel);
+    addAndMakeVisible(endPos);
+
+
+
+
     // Volume slider
 
     volumeSlider.setRange(0, 100, 1);
@@ -46,14 +52,26 @@ PlayerGUI::PlayerGUI()
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
+    // Position slider
+    positionSlider.addListener(this);
+    addAndMakeVisible(positionSlider);
+    positionSlider.setTextBoxStyle(juce::Slider::TextBoxLeft,
+        false,
+        0,
+        0);
+
+    //loop button
     loopButton.setButtonText("Loop\nOOF");
     loopButton.setColour(TextButton::buttonColourId, Colours::red);
     loopButton.repaint();
-    startTimerHz(10);
     loopButton.setClickingTogglesState(true);
 
-    sessionFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("player_session.xml");
+    //دي تخص  التايمر
+    startTimerHz(10);
+
+    sessionFile = juce::File::getSpecialLocation(juce::File::userDesktopDirectory).getChildFile("player_session.xml");
     loadLastState();
+
 
     Pause_PlayButton.setButtonText("Play");
     Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
@@ -62,10 +80,40 @@ PlayerGUI::PlayerGUI()
 }
 PlayerGUI::~PlayerGUI()
 {
-
     saveLastState();
+}
+
+
+void PlayerGUI::resized()
+{
+    int y = 20;
+    loadButton.setBounds(20, y, 100, 40);
+    loadButton.setColour(TextButton::buttonColourId, Colours::blue);
+
+    loopButton.setBounds(250, y, 80, 40);
+
+    volumeSlider.setBounds(getWidth() - 110, 100, 100, 200);
+    positionSlider.setBounds(20, 450, getWidth() - 40, 30);
+
+    //volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
+    volumeSlider.setColour(Slider::trackColourId, Colours::darkgrey);
+
+
+    restartButton.setBounds(250, 350, 80, 40);
+    Pause_PlayButton.setBounds(350, 350, 80, 40);
+    stopButton.setBounds(450, 350, 80, 40);
+    EndButton.setBounds(550, 350, 80, 40);
+
+    //prevButton.setBounds(340, y, 80, 40);
+    muteButton.setBounds(440, y, 80, 40);
+
+    infoLabel.setBounds(20, 100, getWidth() - 40, 60);
+    poslabel.setBounds(20, 500, 100, 30);
+    endPos.setBounds(getWidth() - 120, 500, 100, 30);
+
 
 }
+
 void PlayerGUI::updateLabel(const File& file) {
     std::unique_ptr<AudioFormatReader> reader(formatManager.createReaderFor(file));
 
@@ -115,6 +163,7 @@ void PlayerGUI::saveLastState()
     appState.setProperty("lastFile", currentFile.getFullPathName(), nullptr);
     appState.setProperty("lastPosition", playerAudio.getPosition(), nullptr);
     appState.setProperty("lastVolume", volumeSlider.getValue(), nullptr);
+    appState.setProperty("lastPositionSlider", positionSlider.getValue(), nullptr);
 
     unique_ptr<XmlElement> xml(appState.createXml());
 
@@ -136,43 +185,22 @@ void PlayerGUI::loadLastState() {
             String lastFilePath = appState.getProperty("lastFile").toString();
             double lastPosition = (double)appState.getProperty("lastPosition");
             double lastVolume = (double)appState.getProperty("lastVolume", 50);
+            double lastPositionSlider = (double)appState.getProperty("lastPositionSlider", 0.0);
 
             if (!lastFilePath.isEmpty()) {
 
                 playerAudio.loadFile(File(lastFilePath));
+                double lengthInSeconds = playerAudio.getLength();
+                positionSlider.setRange(0.0, lengthInSeconds);
                 playerAudio.setPosition(lastPosition);
                 volumeSlider.setValue(lastVolume, dontSendNotification);
+                positionSlider.setValue(lastPositionSlider, dontSendNotification);
                 updateLabel(File(lastFilePath));
             }
         }
     }
 }
 
-void PlayerGUI::resized()
-{
-    int y = 20;
-    loadButton.setBounds(20, y, 100, 40);
-    loadButton.setColour(TextButton::buttonColourId, Colours::blue);
-
-    loopButton.setBounds(250, y, 80, 40);
-
-    volumeSlider.setBounds(getWidth() - 110, 100, 100, 200);
-    //volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
-    volumeSlider.setColour(Slider::trackColourId, Colours::darkgrey);
-
-
-    restartButton.setBounds(250, 350, 80, 40);
-    Pause_PlayButton.setBounds(350, 350, 80, 40);
-    stopButton.setBounds(450, 350, 80, 40);
-    EndButton.setBounds(550, 350, 80, 40);
-
-    //prevButton.setBounds(340, y, 80, 40);
-    muteButton.setBounds(440, y, 80, 40);
-
-    infoLabel.setBounds(20, 100, getWidth() - 40, 60);
-
-
-}
 void PlayerGUI::buttonClicked(Button* button)
 {
 
@@ -193,12 +221,12 @@ void PlayerGUI::buttonClicked(Button* button)
                 auto file = fc.getResult();
                 if (file.existsAsFile()) {
                     playerAudio.loadFile(file);
+                    double lengthInSeconds = playerAudio.getLength();
+                    positionSlider.setRange(0.0, lengthInSeconds);
                     Pause_PlayButton.setButtonText("pause ||");
                     Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
                     Pause_PlayButton.repaint();
-
                     playerAudio.start();
-
                     saveLastState();
                     updateLabel(file);
 
@@ -287,6 +315,10 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
         playerAudio.setGain(gainValue / 100);
 
     }
+    else if (slider == &positionSlider)
+    {
+        playerAudio.setPosition((float)slider->getValue());
+    }
 }
 
 
@@ -299,6 +331,8 @@ void PlayerGUI::paint(Graphics& g)
 
 void PlayerGUI::timerCallback()
 {
+    positionSlider.setValue(playerAudio.getPosition(), dontSendNotification);
+
     double currentPos = playerAudio.getPosition();
     double totalLength = playerAudio.getLength();
 
@@ -318,4 +352,19 @@ void PlayerGUI::timerCallback()
             Pause_PlayButton.repaint();
         }
     }
+
+
+
+    // label of the position in minutes and seconds 
+
+    int mins = (int)(currentPos / 60);
+    int secs = (int)(round(currentPos)) % 60;
+    String positionText = String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
+    poslabel.setText(positionText, dontSendNotification);
+
+
+    int mi = (int)(totalLength / 60);
+    int se = (int)(round(totalLength)) % 60;
+    String endPositionText = String(mi).paddedLeft('0', 2) + ":" + String(se).paddedLeft('0', 2);
+    endPos.setText(endPositionText, dontSendNotification);
 }
