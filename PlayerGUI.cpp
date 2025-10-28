@@ -1,4 +1,4 @@
-﻿#include <JuceHeader.h>
+#include <JuceHeader.h>
 #include "PlayerGUI.h"
 using namespace std;
 using namespace juce;
@@ -51,6 +51,19 @@ PlayerGUI::PlayerGUI()
     volumeSlider.setSliderStyle(Slider::LinearVertical);
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
+	// Speed slider
+
+    speed_slider.setRange(0.25, 2.0, 0.25); 
+    speed_slider.setValue(1.0);
+    speed_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20);
+    speed_slider.setTextValueSuffix("x");
+    speed_slider.addListener(this);
+    addAndMakeVisible(speed_slider);
+
+    // Speed label
+    speed_label.setText("Speed:", dontSendNotification);
+    speed_label.setJustificationType(Justification::centredRight);
+    addAndMakeVisible(speed_label);
 
     // Position slider
     positionSlider.addListener(this);
@@ -110,6 +123,10 @@ void PlayerGUI::resized()
     infoLabel.setBounds(20, 100, getWidth() - 40, 60);
     poslabel.setBounds(20, 500, 100, 30);
     endPos.setBounds(getWidth() - 120, 500, 100, 30);
+	//speed slider and label
+    speed_label.setBounds(20, 400, 80, 30);
+    speed_slider.setBounds(110, 400, 200, 30);
+
 
 
 }
@@ -319,6 +336,11 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
     {
         playerAudio.setPosition((float)slider->getValue());
     }
+    else if (slider == &speed_slider) 
+    {
+        float speedValue = (float)speed_slider.getValue();
+        playerAudio.set_speed(speedValue);
+    }
 }
 
 
@@ -326,6 +348,10 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
 void PlayerGUI::paint(Graphics& g)
 {
     g.fillAll(Colours::black);
+    g.setColour(Colours::white);
+    g.setFont(14.0f);
+    String speedText = String(playerAudio.get_speed(), 2) + "x";
+    g.drawText(speedText, speed_slider.getRight() + 10, speed_slider.getY(), 50, speed_slider.getHeight(), Justification::centredLeft);
 }
 
 

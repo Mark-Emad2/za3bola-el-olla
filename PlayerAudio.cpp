@@ -1,29 +1,35 @@
-﻿#include <JuceHeader.h>
+#include <JuceHeader.h>
 #include "PlayerAudio.h"
 //using namespace std;
 using namespace juce;
 
 PlayerAudio::PlayerAudio()
+    : resampleSource(&transportSource, false)
 {
     formatManager.registerBasicFormats();
 }
 PlayerAudio::~PlayerAudio()
 {
+    transportSource.setSource(nullptr);
+    readerSource.reset();
 }
 
 void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-    transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+
+    resampleSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
 void PlayerAudio::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
-    transportSource.getNextAudioBlock(bufferToFill);
+    bufferToFill.clearActiveBufferRegion();
+
+    resampleSource.getNextAudioBlock(bufferToFill);
 }
 
 void PlayerAudio::releaseResources()
 {
-    transportSource.releaseResources();
+    resampleSource.releaseResources();
 }
 
 bool PlayerAudio::loadFile(const File& file)
@@ -50,6 +56,8 @@ bool PlayerAudio::loadFile(const File& file)
                 nullptr,
                 reader->sampleRate);
 
+            set_speed(1.0f);
+
             // transportSource.start();
         }
         return true;
@@ -69,7 +77,6 @@ void PlayerAudio::stop()
 }
 void PlayerAudio::setGain(float gain)
 {
-    //gain = jlimit(0.0f, 1.0f, gain);
     last_value = gain;
     if (!ismuted)
         transportSource.setGain(gain);
@@ -110,8 +117,18 @@ float PlayerAudio::get_current_gain() const
 
 bool PlayerAudio::isPlaying() const
 {
-    return transportSource.isPlaying();
+   return transportSource.isPlaying();
 }
 
+void PlayerAudio::set_speed(float speed)
+{
+	speed = jlimit(0.25f, 2.0f, speed);
+    resampleSource.setResamplingRatio(speed);
+}
+
+float PlayerAudio::get_speed() const
+{
+    return current_speed;
+}
 File PlayerAudio::getCurrentFile() const { return currentFile; };
 

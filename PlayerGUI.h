@@ -38,6 +38,8 @@ private:
     TextButton muteButton{ "Mute" };
     Slider volumeSlider;
     Slider positionSlider;
+    Slider speed_slider;
+    Label speed_label;
     Label poslabel;
     Label endPos;
     AudioFormatManager formatManager;

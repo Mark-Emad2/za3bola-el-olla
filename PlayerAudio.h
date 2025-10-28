@@ -25,6 +25,8 @@ public:
     bool isPlaying() const;
 
     File getCurrentFile() const;
+    void set_speed(float speed);
+    float get_speed() const;
 
 
 
@@ -32,8 +34,10 @@ private:
     AudioFormatManager formatManager;
     unique_ptr<AudioFormatReaderSource> readerSource;
     AudioTransportSource transportSource;
+    ResamplingAudioSource resampleSource;
     float last_value = 1.0f;
     bool ismuted = false;
+	float current_speed = 1.0f;
 
     File currentFile;
 
