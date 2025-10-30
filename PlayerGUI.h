@@ -1,4 +1,4 @@
-﻿#pragma once						// PlayerGUI.h
+﻿﻿#pragma once						// PlayerGUI.h
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 using namespace juce;
@@ -7,7 +7,13 @@ using namespace juce;
 class PlayerGUI : public Component,
     public Button::Listener,
     public Slider::Listener,
-    public Timer
+    public Timer,
+    public ListBoxModel // فيه الفنكشنز الى هي
+    //getNumRows و paintListBoxItem و listBoxItemDoubleClicked
+      // و selectedRowsChanged
+      // كل حاجه عاوزها فى البوكس بتاعة البلاي لست
+
+
 {
 public:
     PlayerGUI();
@@ -25,17 +31,27 @@ public:
     void paint(Graphics& g) override;
     void timerCallback() override;
 
+    int getNumRows() override;
+    void paintListBoxItem(int row, Graphics& graph, int width, int height, bool rowIsSelected);
+    void listBoxItemDoubleClicked(int row, const MouseEvent&) override;
+    void selectedRowsChanged(int lastRow) override;
+    void listBoxItemClicked(int row, const MouseEvent& e)override;
+
+
 private:
     PlayerAudio playerAudio;
 
     // GUI elements
     TextButton loadButton{ "Load File" };
-    TextButton restartButton{ "|< Start" };
+    TextButton restart_PreviousButton{ "|< Previous" };
     TextButton stopButton{ "Stop" };
     TextButton loopButton;
     TextButton Pause_PlayButton{ "Pause ||" };
-    TextButton EndButton{ "End >|" };
+    TextButton EndButton{ "Next >|" };
     TextButton muteButton{ "Mute" };
+    TextButton addToPlaylistButton{ "Add To Playlist +_+" };
+    //TextButton removeButton{ "Remove" };
+
     Slider volumeSlider;
     Slider positionSlider;
     Slider speed_slider;
@@ -43,6 +59,7 @@ private:
     Label poslabel;
     Label endPos;
     AudioFormatManager formatManager;
+
 
 
     unique_ptr<FileChooser> fileChooser;
@@ -64,6 +81,14 @@ private:
     void saveLastState();
     void loadLastState();
 
+    ListBox playlistBox;
+    StringArray playlist;
+    int currentIndex{ -1 };
+    void playIndex(int row);
+    static void safeButton_Colour(TextButton& btn, const String& text, const Colour& col);
+
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
+
 };

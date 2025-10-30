@@ -7,6 +7,13 @@ void PlayerGUI::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
     playerAudio.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
+// تغيير لون الزر مع تغيير النص 
+void PlayerGUI::safeButton_Colour(TextButton& btn, const String& text, const Colour& col)
+{
+    btn.setButtonText(text);
+    btn.setColour(TextButton::buttonColourId, col);
+    btn.repaint();
+}
 void PlayerGUI::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     playerAudio.getNextAudioBlock(bufferToFill);
@@ -16,16 +23,17 @@ void PlayerGUI::releaseResources()
 {
     playerAudio.releaseResources();
 }
+
 PlayerGUI::PlayerGUI()
 {
     // Add buttons
+    formatManager.registerBasicFormats();
 
-    for (auto* btn : { &loadButton, &restartButton , &stopButton , &loopButton,&Pause_PlayButton,&EndButton,&muteButton })
+    for (auto* btn : { &loadButton, &restart_PreviousButton , &stopButton , &loopButton,&Pause_PlayButton,&EndButton,&muteButton,&addToPlaylistButton })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
-    formatManager.registerBasicFormats();
 
     addAndMakeVisible(infoLabel);
     infoLabel.setJustificationType(Justification::centredLeft);
@@ -51,9 +59,9 @@ PlayerGUI::PlayerGUI()
     volumeSlider.setSliderStyle(Slider::LinearVertical);
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
-	// Speed slider
+    // Speed slider
 
-    speed_slider.setRange(0.25, 2.0, 0.25); 
+    speed_slider.setRange(0.25, 2.0, 0.25);
     speed_slider.setValue(1.0);
     speed_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20);
     speed_slider.setTextValueSuffix("x");
@@ -82,8 +90,14 @@ PlayerGUI::PlayerGUI()
     //دي تخص  التايمر
     startTimerHz(10);
 
+    // session file location
     sessionFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("player_session.xml");
+    // playlist box
+    playlistBox.setModel(this);
+    addAndMakeVisible(playlistBox);
+
     loadLastState();
+
 
 
     Pause_PlayButton.setButtonText("Play");
@@ -97,40 +111,123 @@ PlayerGUI::~PlayerGUI()
 }
 
 
+//void PlayerGUI::resized()
+//{
+//    int y = 20;
+//    loadButton.setBounds(20, y, 100, 40);
+//    loadButton.setColour(TextButton::buttonColourId, Colours::blue);
+//
+//    loopButton.setBounds(250, y, 80, 40);
+//
+//    volumeSlider.setBounds(getWidth() - 110, 100, 100, 200);
+//    positionSlider.setBounds(20, 450, getWidth() - 40, 30);
+//
+//    //volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
+//    volumeSlider.setColour(Slider::trackColourId, Colours::darkgrey);
+//
+//
+//    restart_PreviousButton.setBounds(250, 350, 80, 40);
+//    Pause_PlayButton.setBounds(350, 350, 80, 40);
+//    stopButton.setBounds(450, 350, 80, 40);
+//    EndButton.setBounds(550, 350, 80, 40);
+//
+//    //prevButton.setBounds(340, y, 80, 40);
+//    muteButton.setBounds(440, y, 80, 40);
+//
+//    infoLabel.setBounds(20, 100, getWidth() - 40, 60);
+//    poslabel.setBounds(20, 500, 100, 30);
+//    endPos.setBounds(getWidth() - 120, 500, 100, 30);
+//
+//    //speed slider and label
+//    speed_label.setBounds(20, 400, 80, 30);
+//    speed_slider.setBounds(110, 400, 200, 30);
+//
+//	// playlist button, box and remove button
+//    addToPlaylistButton.setBounds(20, 70, 140, 28);
+//   // removeButton.setBounds(170, 70, 80, 28);
+//    playlistBox.setBounds(20, 110, getWidth() - 160, 200);
+//
+//
+//
+//
+//}
+
 void PlayerGUI::resized()
 {
-    int y = 20;
-    loadButton.setBounds(20, y, 100, 40);
-    loadButton.setColour(TextButton::buttonColourId, Colours::blue);
+    int margin = 20;
+    int buttonWidth = 100;
+    int buttonHeight = 40;
 
-    loopButton.setBounds(250, y, 80, 40);
+    int rightPanelWidth = 260; // عرض جزء البلاي ليست
+    int contentWidth = getWidth() - rightPanelWidth - (3 * margin);
 
-    volumeSlider.setBounds(getWidth() - 110, 100, 100, 200);
-    positionSlider.setBounds(20, 450, getWidth() - 40, 30);
+    // ====== الأزرار العليا ======
+    int topY = margin;
+    loadButton.setBounds(margin, topY, buttonWidth, buttonHeight);
+    addToPlaylistButton.setBounds(loadButton.getRight() + 10, topY, 140, buttonHeight);
+    loopButton.setBounds(addToPlaylistButton.getRight() + 10, topY, 80, buttonHeight);
+    muteButton.setBounds(loopButton.getRight() + 10, topY, 80, buttonHeight);
 
-    //volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
-    volumeSlider.setColour(Slider::trackColourId, Colours::darkgrey);
+    // ====== metadata label (في النص) ======
+    int infoY = loadButton.getBottom() + 20;
+    infoLabel.setBounds(margin, infoY, contentWidth, 100);
+    infoLabel.setColour(Label::backgroundColourId, Colours::darkgrey.withAlpha(0.2f));
+    infoLabel.setColour(Label::textColourId, Colours::whitesmoke);
+    infoLabel.setJustificationType(Justification::centred);
+
+    // ====== playlist على اليمين ======
+    int playlistX = getWidth() - rightPanelWidth - margin;
+    int playlistY = topY;
+    playlistBox.setBounds(playlistX, playlistY, rightPanelWidth, getHeight() - (2 * margin) - 60);
+    playlistBox.setColour(ListBox::backgroundColourId, Colours::darkslategrey.withAlpha(0.4f));
+    playlistBox.setOutlineThickness(1);
+    playlistBox.setColour(ListBox::outlineColourId, Colours::lightgrey.withAlpha(0.4f));
+
+    // ====== السلايدر بتاع البوزيشن ======
+    int posY = infoLabel.getBottom() + 25;
+    positionSlider.setBounds(margin, posY, contentWidth, 25);
+    positionSlider.setColour(Slider::trackColourId, Colours::lightgrey);
+    positionSlider.setColour(Slider::thumbColourId, Colours::orange);
+
+    // ====== الليبلات بتاعة الوقت ======
+    poslabel.setBounds(margin, positionSlider.getBottom() + 10, 100, 25);
+    endPos.setBounds(contentWidth - 100, positionSlider.getBottom() + 10, 100, 25);
+
+    // ====== السلايدر بتاع السرعة ======
+    int speedY = poslabel.getBottom() + 15;
+    speed_label.setBounds(margin, speedY, 80, 25);
+    speed_slider.setBounds(speed_label.getRight() + 10, speedY, 200, 25);
+    speed_slider.setColour(Slider::trackColourId, Colours::grey.withAlpha(0.4f));
+    speed_slider.setColour(Slider::thumbColourId, Colours::yellow);
+
+    // ====== سلايدر الصوت ======
+    volumeSlider.setBounds(contentWidth - 70, infoLabel.getBottom() + 10, 60, 200);
+    volumeSlider.setColour(Slider::trackColourId, Colours::grey.withAlpha(0.5f));
+    volumeSlider.setColour(Slider::thumbColourId, Colours::red);
+
+    // ====== الأزرار السفلية ======
+    int bottomY = getHeight() - buttonHeight - margin;
+    restart_PreviousButton.setBounds(margin, bottomY, buttonWidth, buttonHeight);
+    Pause_PlayButton.setBounds(restart_PreviousButton.getRight() + 10, bottomY, buttonWidth, buttonHeight);
+    stopButton.setBounds(Pause_PlayButton.getRight() + 10, bottomY, buttonWidth, buttonHeight);
+    EndButton.setBounds(stopButton.getRight() + 10, bottomY, buttonWidth, buttonHeight);
+
+    // ====== تحسين الأزرار ======
+    for (auto* btn : { &loadButton, &addToPlaylistButton, &loopButton, &muteButton,
+                       &restart_PreviousButton, &Pause_PlayButton, &stopButton, &EndButton })
+    {
+        btn->setColour(TextButton::buttonColourId, Colours::darkcyan.withAlpha(0.7f));
+        btn->setColour(TextButton::textColourOffId, Colours::white);
+        btn->setColour(TextButton::buttonOnColourId, Colours::deepskyblue);
+        btn->setConnectedEdges(0);
 
 
-    restartButton.setBounds(250, 350, 80, 40);
-    Pause_PlayButton.setBounds(350, 350, 80, 40);
-    stopButton.setBounds(450, 350, 80, 40);
-    EndButton.setBounds(550, 350, 80, 40);
-
-    //prevButton.setBounds(340, y, 80, 40);
-    muteButton.setBounds(440, y, 80, 40);
-
-    infoLabel.setBounds(20, 100, getWidth() - 40, 60);
-    poslabel.setBounds(20, 500, 100, 30);
-    endPos.setBounds(getWidth() - 120, 500, 100, 30);
-	//speed slider and label
-    speed_label.setBounds(20, 400, 80, 30);
-    speed_slider.setBounds(110, 400, 200, 30);
-
-
-
+    }
 }
 
+
+
+// تحديث الليبل من الميتاداتا
 void PlayerGUI::updateLabel(const File& file) {
     std::unique_ptr<AudioFormatReader> reader(formatManager.createReaderFor(file));
 
@@ -174,13 +271,38 @@ void PlayerGUI::updateLabel(const File& file) {
 }
 
 
+// save last session state
 void PlayerGUI::saveLastState()
 {
+
+
+
     File currentFile = playerAudio.getCurrentFile();
     appState.setProperty("lastFile", currentFile.getFullPathName(), nullptr);
     appState.setProperty("lastPosition", playerAudio.getPosition(), nullptr);
     appState.setProperty("lastVolume", volumeSlider.getValue(), nullptr);
     appState.setProperty("lastPositionSlider", positionSlider.getValue(), nullptr);
+    appState.setProperty("currentIndex", currentIndex, nullptr); // ✅ أضف السطر ده
+
+
+
+    // بمسح البلاي ليست القديمه عشان يضيف الجديد
+    for (int i = appState.getNumChildren() - 1; i >= 0; --i)
+    {
+        if (appState.getChild(i).getType().toString() == "Playlist")
+            appState.removeChild(i, nullptr);
+    }
+
+    ValueTree playlistState("Playlist");
+    for (auto& path : playlist) {
+
+        ValueTree filetree("File");
+        filetree.setProperty("path", path, nullptr);
+        playlistState.addChild(filetree, -1, nullptr);// -1 عشان يضيف فى الاخر
+
+    }
+    appState.addChild(playlistState, -1, nullptr);
+
 
     unique_ptr<XmlElement> xml(appState.createXml());
 
@@ -189,6 +311,7 @@ void PlayerGUI::saveLastState()
     }
 
 }
+// load last session state
 
 void PlayerGUI::loadLastState() {
 
@@ -198,11 +321,31 @@ void PlayerGUI::loadLastState() {
 
         unique_ptr<XmlElement> xml(parseXML(sessionFile));
         if (xml) {
+
+            playlist.clear();
             appState = ValueTree::fromXml(*xml);
+
+            ValueTree playlistTree = appState.getChildWithName("Playlist");
+
+            for (int i = 0; i < playlistTree.getNumChildren(); ++i) {
+
+                ValueTree fileTree = playlistTree.getChild(i);
+                String path = fileTree.getProperty("path").toString();
+
+                if (File(path).existsAsFile()) {
+                    playlist.add(path);
+                }
+
+            }
+            playlistBox.updateContent();
+
+
             String lastFilePath = appState.getProperty("lastFile").toString();
             double lastPosition = (double)appState.getProperty("lastPosition");
             double lastVolume = (double)appState.getProperty("lastVolume", 50);
             double lastPositionSlider = (double)appState.getProperty("lastPositionSlider", 0.0);
+
+            currentIndex = (int)appState.getProperty("currentIndex", -1);
 
             if (!lastFilePath.isEmpty()) {
 
@@ -212,113 +355,15 @@ void PlayerGUI::loadLastState() {
                 playerAudio.setPosition(lastPosition);
                 volumeSlider.setValue(lastVolume, dontSendNotification);
                 positionSlider.setValue(lastPositionSlider, dontSendNotification);
+
                 updateLabel(File(lastFilePath));
             }
+            if (currentIndex >= 0 && currentIndex < playlist.size())
+                playlistBox.selectRow(currentIndex);
         }
     }
 }
 
-void PlayerGUI::buttonClicked(Button* button)
-{
-
-    if (button == &loadButton)
-    {
-        FileChooser chooser("Select audio files...",
-            File{},
-            "*.wav;*.mp3");
-
-        fileChooser = make_unique<FileChooser>(
-            "Select an audio file...",
-            File{},
-            "*.wav;*.mp3");
-        fileChooser->launchAsync(
-            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
-            [this](const FileChooser& fc)
-            {
-                auto file = fc.getResult();
-                if (file.existsAsFile()) {
-                    playerAudio.loadFile(file);
-                    double lengthInSeconds = playerAudio.getLength();
-                    positionSlider.setRange(0.0, lengthInSeconds);
-                    Pause_PlayButton.setButtonText("pause ||");
-                    Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
-                    Pause_PlayButton.repaint();
-                    playerAudio.start();
-                    saveLastState();
-                    updateLabel(file);
-
-
-                }
-
-            });
-
-    }
-
-    else if (button == &restartButton)
-    {
-        playerAudio.setPosition(0.0);
-        Pause_PlayButton.setButtonText("pause ||");
-        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
-        Pause_PlayButton.repaint();
-
-        playerAudio.start();
-    }
-
-    else if (button == &stopButton)
-    {
-        playerAudio.stop();
-        Pause_PlayButton.setButtonText("Play");
-        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
-        Pause_PlayButton.repaint();
-    }
-    else if (button == &loopButton) {
-        if (loopButton.getToggleState())
-        {
-            loopButton.setButtonText("Loop\nON");
-            loopButton.setColour(TextButton::buttonOnColourId, Colours::green);
-            loopButton.repaint();
-        }
-        else {
-            loopButton.setButtonText("Loop\nOFF");
-            loopButton.setColour(TextButton::buttonColourId, Colours::red);
-            loopButton.repaint();
-        }
-    }
-    else if (button == &muteButton) {
-        playerAudio.mute();
-
-        if (playerAudio.muted()) {
-            muteButton.setButtonText("unmute");
-        }
-        else {
-            muteButton.setButtonText("mute");
-        }
-    }
-    else if (button == &Pause_PlayButton) {
-        if (playerAudio.isPlaying()) {
-            playerAudio.stop();
-            Pause_PlayButton.setButtonText("Play");
-            Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
-        }
-        else {
-            playerAudio.start();
-            Pause_PlayButton.setButtonText("Pause ||");
-            Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
-        }
-        Pause_PlayButton.repaint();
-    }//⏸️⏯️
-    else if (button == &EndButton) {
-        playerAudio.setPosition(playerAudio.getLength());
-
-        Pause_PlayButton.setButtonText("Play");
-        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
-        Pause_PlayButton.repaint();
-    }
-
-
-
-
-}
 
 void PlayerGUI::sliderValueChanged(Slider* slider)
 {
@@ -336,7 +381,7 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
     {
         playerAudio.setPosition((float)slider->getValue());
     }
-    else if (slider == &speed_slider) 
+    else if (slider == &speed_slider)
     {
         float speedValue = (float)speed_slider.getValue();
         playerAudio.set_speed(speedValue);
@@ -365,17 +410,24 @@ void PlayerGUI::timerCallback()
     if (totalLength > 0 && currentPos >= totalLength)
     {
         playerAudio.stop();
-        Pause_PlayButton.setButtonText("Play");
-        Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::green);
-        Pause_PlayButton.repaint();
+
+        safeButton_Colour(Pause_PlayButton, "Play", Colours::green);
 
         if (loopButton.getToggleState())
         {
             playerAudio.setPosition(0.0);
             playerAudio.start();
-            Pause_PlayButton.setButtonText("Pause");
-            Pause_PlayButton.setColour(TextButton::buttonColourId, Colours::orange);
-            Pause_PlayButton.repaint();
+            safeButton_Colour(Pause_PlayButton, "pause ||", Colours::orange);
+
+        }
+        else {
+            if (playlist.size() > 0 && currentIndex >= 0) {
+                int nextIndex = currentIndex + 1;
+                if (nextIndex >= playlist.size()) {
+                    nextIndex = 0;
+                }
+                playIndex(nextIndex);
+            }
         }
     }
 
@@ -393,4 +445,306 @@ void PlayerGUI::timerCallback()
     int se = (int)(round(totalLength)) % 60;
     String endPositionText = String(mi).paddedLeft('0', 2) + ":" + String(se).paddedLeft('0', 2);
     endPos.setText(endPositionText, dontSendNotification);
+}
+
+// ------------------------------<*>playlist<*>------------------------------
+
+
+int PlayerGUI::getNumRows()
+{
+    return playlist.size();
+}
+
+void PlayerGUI::paintListBoxItem(int row, Graphics& graph, int width, int height, bool rowIsSelected) {
+    if (row < 0 || row >= playlist.size()) return;
+    if (rowIsSelected) {
+        graph.fillAll(Colours::lightblue);
+    }
+    String filename = File(playlist[row]).getFileName();
+    graph.setColour(Colours::black);
+    graph.drawText(filename, 4, 0, width - 4, height, Justification::centredLeft, true);
+}
+
+//عشان اما تغغط مرتين يغير رقم الاندكس و يشغل الاغنيه
+
+void PlayerGUI::listBoxItemDoubleClicked(int row, const MouseEvent&)
+{
+    playIndex(row);
+}
+
+void PlayerGUI::listBoxItemClicked(int row, const MouseEvent& e)
+{
+    // صححنا شرط التحقق من الـ row
+    if (row < 0 || row >= playlist.size()) return;
+
+    if (e.mods.isPopupMenu()) { // to check if user press right click
+
+        PopupMenu menu;
+        menu.addItem(1, "Play");
+        menu.addItem(2, "Remove");
+
+        // capture a copy of row (already captured in lambda) -- fine
+        menu.showMenuAsync(PopupMenu::Options().withTargetScreenArea(Rectangle<int>(e.getScreenPosition().x, e.getScreenPosition().y, 1, 1)), [this, row](int click)
+            {
+                if (click == 1)
+                {
+                    playIndex(row);
+                    return;
+                }
+
+                if (click == 2)
+                {
+
+                    if (row < 0 || row >= playlist.size())
+                        return;
+
+
+                    String currentFilePath;
+                    File curFile = playerAudio.getCurrentFile();
+                    if (curFile.existsAsFile())
+                        currentFilePath = curFile.getFullPathName();
+
+                    // إذا المستخدم حذف نفس الملف المشغول الآن
+                    bool deletingCurrent = (currentIndex == row);
+
+                    String removedPath = playlist[row];
+
+                    playlist.remove(row);
+                    playlistBox.updateContent();
+
+                    int newIndex = -1;
+                    if (currentFilePath.isNotEmpty())
+                    {
+                        for (int i = 0; i < playlist.size(); ++i)
+                        {
+                            if (playlist[i] == currentFilePath)
+                            {
+                                newIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (newIndex != -1)
+                    {
+
+                        currentIndex = newIndex;
+                        playlistBox.selectRow(currentIndex);
+                    }
+                    else
+
+                    {
+                        if (playlist.size() > 0)
+                        {
+
+                            int Play = jmin(row, playlist.size() - 1);
+
+
+                            playIndex(Play);
+                        }
+                        else
+                        {
+                            // البلاي لست بقت فارغة إيقاف وتشغيل واجهة المستخدم
+                            playerAudio.stop();
+                            safeButton_Colour(Pause_PlayButton, "Play", Colours::green);
+                            infoLabel.setText("No File Loaded", dontSendNotification);
+                            currentIndex = -1;
+                        }
+                    }
+
+                    saveLastState();
+                }
+            });
+
+    }
+    else {
+        playlistBox.selectRow(row);
+        currentIndex = row;
+    }
+}
+
+
+
+void PlayerGUI::selectedRowsChanged(int lastRow)
+{
+    currentIndex = lastRow;
+    //playIndex(currentIndex);
+}
+
+
+
+
+//الاغنيه اللى الشغاله من البلاي ليست و رقم الاندكس بتاعها
+void PlayerGUI::playIndex(int row) {
+    if (row >= 0 && row < playlist.size()) { // بتاكد ان الرو بتاع الاندكس جوه الرينج
+
+        File fileToPlay(playlist[row]);
+        if (fileToPlay.existsAsFile()) {
+
+            playerAudio.loadFile(fileToPlay);
+            double lengthInSeconds = playerAudio.getLength();
+
+            positionSlider.setRange(0.0, lengthInSeconds);
+
+            safeButton_Colour(Pause_PlayButton, "pause ||", Colours::orange);
+
+            playerAudio.start();
+            currentIndex = row;
+
+            playlistBox.selectRow(currentIndex);
+
+            updateLabel(fileToPlay);
+            saveLastState();
+
+        }
+        else {          // if file not exist remove it from playlist
+            playlist.remove(row);
+            playlistBox.updateContent();
+            saveLastState();
+
+        }
+    }
+}
+
+void PlayerGUI::buttonClicked(Button* button)
+{
+
+    if (button == &loadButton)
+    {
+        FileChooser chooser("Select audio files...",
+            File{},
+            "*.wav;*.mp3");
+
+        fileChooser = make_unique<FileChooser>(
+            "Select an audio file...",
+            File{},
+            "*.wav;*.mp3");
+        fileChooser->launchAsync(
+            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
+            [this](const FileChooser& fc)
+            {
+                auto file = fc.getResult();
+                if (file.existsAsFile()) {
+                    playerAudio.loadFile(file);
+                    double lengthInSeconds = playerAudio.getLength();
+                    positionSlider.setRange(0.0, lengthInSeconds);
+
+                    safeButton_Colour(Pause_PlayButton, "Pause ||", Colours::orange);
+
+                    playerAudio.start();
+
+                    updateLabel(file);
+                    saveLastState();
+                }
+
+            });
+
+    }
+    else if (button == &addToPlaylistButton) {
+        FileChooser chooser("Select audio files...",
+            File{},
+            "*.wav;*.mp3");
+
+        fileChooser = make_unique<FileChooser>(
+            "Select an audio file...",
+            File{},
+            "*.wav;*.mp3");
+        fileChooser->launchAsync(
+            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
+            [this](const FileChooser& fc)
+            {
+                auto results = fc.getResults();
+                if (results.size() > 0) {
+                    for (auto& file : results) {
+                        playlist.add(file.getFullPathName());
+                        playlistBox.updateContent();
+                        if (currentIndex == -1 && playlist.size() > 0) {
+                            playIndex(0);
+                            saveLastState();
+                        }
+                    }
+
+                }
+
+            });
+
+    }
+
+
+    else if (button == &restart_PreviousButton)
+    {
+        if (playerAudio.getPosition() > 1.0) {
+
+            playerAudio.setPosition(0.0);
+        }
+        else if (playlist.size() > 0) {
+
+            int prevIndex;
+            if (currentIndex > 0) {
+                playIndex(currentIndex - 1);
+            }
+            else {
+                playIndex(playlist.size() - 1);
+            }
+
+        }
+        safeButton_Colour(Pause_PlayButton, "Pause ||", Colours::orange);
+
+
+        playerAudio.start();
+    }
+
+    else if (button == &stopButton)
+    {
+        playerAudio.stop();
+        safeButton_Colour(Pause_PlayButton, "play", Colours::green);
+
+    }
+    else if (button == &loopButton) {
+        if (loopButton.getToggleState())
+        {
+            loopButton.setButtonText("Loop\nON");
+            loopButton.setColour(TextButton::buttonOnColourId, Colours::green);
+            loopButton.repaint();
+        }
+        else {
+            loopButton.setButtonText("Loop\nOFF");
+            loopButton.setColour(TextButton::buttonColourId, Colours::red);
+            loopButton.repaint();
+        }
+    }
+    else if (button == &muteButton) {
+        playerAudio.mute();
+
+        if (playerAudio.muted()) {
+            muteButton.setButtonText("unmute");
+        }
+        else {
+            muteButton.setButtonText("mute");
+        }
+    }
+    else if (button == &Pause_PlayButton) {
+        if (playerAudio.isPlaying()) {
+            playerAudio.stop();
+
+            safeButton_Colour(Pause_PlayButton, "play", Colours::green);
+
+        }
+        else {
+            playerAudio.start();
+
+            safeButton_Colour(Pause_PlayButton, "Puse ||", Colours::orange);
+        }
+        Pause_PlayButton.repaint();
+    }//⏸️⏯️
+    else if (button == &EndButton) {
+        playerAudio.setPosition(playerAudio.getLength());
+
+        if (playlist.size() == 0 || currentIndex == -1) {
+
+            safeButton_Colour(Pause_PlayButton, "Play", Colours::green);
+        }
+
+        Pause_PlayButton.repaint();
+    }
 }
