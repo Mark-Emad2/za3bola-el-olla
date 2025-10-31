@@ -1,45 +1,88 @@
-#pragma once							// PlayerAudio.h
+#pragma once
 #include <JuceHeader.h>
-using namespace std;
+#include "PlayerAudio.h"
 using namespace juce;
-class PlayerAudio
+
+class PlayerGUI : public Component,
+    public Button::Listener,
+    public Slider::Listener,
+    public Timer,
+    public ListBoxModel,
+    public ChangeListener
 {
 public:
-    PlayerAudio();
-    ~PlayerAudio();
+    PlayerGUI();
+    ~PlayerGUI() override;
+
+    void updateLabel(const File& file);
+    void resized() override;
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
     void getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill);
     void releaseResources();
+    void paint(Graphics& g) override;
+    void timerCallback() override;
+    void changeListenerCallback(ChangeBroadcaster* source) override;
 
-    bool loadFile(const File& file);
-    void start();
-    void stop();
-    void setGain(float gain);
-    void setPosition(double pos);
-    double getPosition() const;
-    double getLength() const;
-    void mute();
-    bool muted()const;
-    float get_current_gain()const;
-    bool isPlaying() const;
-
-    File getCurrentFile() const;
-    void set_speed(float speed);
-    float get_speed() const;
-
-
+    int getNumRows() override;
+    void paintListBoxItem(int row, Graphics& graph, int width, int height, bool rowIsSelected);
+    void listBoxItemDoubleClicked(int row, const MouseEvent&) override;
+    void selectedRowsChanged(int lastRow) override;
+    void listBoxItemClicked(int row, const MouseEvent& e) override;
 
 private:
+    PlayerAudio playerAudio;
+
+    // Waveform components
     AudioFormatManager formatManager;
-    unique_ptr<AudioFormatReaderSource> readerSource;
-    AudioTransportSource transportSource;
-    ResamplingAudioSource resampleSource;
-    float last_value = 1.0f;
-    bool ismuted = false;
-	float current_speed = 1.0f;
+    AudioThumbnailCache thumbnailCache;
+    AudioThumbnail audioThumbnail;
+    bool fileLoaded;
 
-    File currentFile;
+    // ?? ??? ??? waveform visualiser
+    AudioVisualiserComponent waveformVisualiser;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
+    // GUI elements
+    TextButton loadButton{ "Load File" };
+    TextButton restart_PreviousButton{ "|< Previous" };
+    TextButton stopButton{ "Stop" };
+    TextButton loopButton;
+    TextButton Pause_PlayButton{ "Pause ||" };
+    TextButton EndButton{ "Next >|" };
+    TextButton muteButton{ "Mute" };
+    TextButton addToPlaylistButton{ "Add To Playlist +_+" };
+
+    Slider volumeSlider;
+    Slider positionSlider;
+    Slider speed_slider;
+    Label speed_label;
+    Label poslabel;
+    Label endPos;
+
+    unique_ptr<FileChooser> fileChooser;
+    std::unique_ptr<juce::Drawable> playIconDrawable;
+
+    // Event handlers
+    void buttonClicked(Button* button) override;
+    void sliderValueChanged(Slider* slider) override;
+
+    Label infoLabel;
+    String displayText;
+
+    File sessionFile;
+    ValueTree appState{ "AppState" };
+    void saveLastState();
+    void loadLastState();
+
+    ListBox playlistBox;
+    StringArray playlist;
+    int currentIndex{ -1 };
+    void playIndex(int row);
+    static void safeButton_Colour(TextButton& btn, const String& text, const Colour& col);
+
+    // Mouse interaction for waveform
+    void mouseDown(const MouseEvent& event) override;
+    void mouseDrag(const MouseEvent& event) override;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
