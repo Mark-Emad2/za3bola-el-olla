@@ -8,10 +8,6 @@ class PlayerGUI : public Component,
     public Slider::Listener,
     public Timer,
     public ListBoxModel,
-    // فيه الفنكشنز الى هي
-    //getNumRows و paintListBoxItem و listBoxItemDoubleClicked
-      // و selectedRowsChanged
-      // كل حاجه عاوزها فى البوكس بتاعة البلاي لست
     public ChangeListener
 {
 public:
@@ -19,7 +15,6 @@ public:
     ~PlayerGUI() override;
 
     void updateLabel(const File& file);
-    //void updateLabelUsingFFprobe(const File& file);// ما هذا
     void resized() override;
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
@@ -43,6 +38,9 @@ private:
     AudioThumbnailCache thumbnailCache;
     AudioThumbnail audioThumbnail;
     bool fileLoaded;
+
+    // ⬇️ أضف الـ waveform visualiser
+    AudioVisualiserComponent waveformVisualiser;
 
     // GUI elements
     TextButton loadButton{ "Load File" };
@@ -70,7 +68,6 @@ private:
 
     Label infoLabel;
     String displayText;
-    //cpp على فكره ممكن احطه عادى ف ملف ال
 
     File sessionFile;
     ValueTree appState{ "AppState" };
