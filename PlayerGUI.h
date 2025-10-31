@@ -1,19 +1,18 @@
-﻿﻿#pragma once						// PlayerGUI.h
+﻿#pragma once
 #include <JuceHeader.h>
 #include "PlayerAudio.h"
 using namespace juce;
-//using namespace std;
 
 class PlayerGUI : public Component,
     public Button::Listener,
     public Slider::Listener,
     public Timer,
-    public ListBoxModel // فيه الفنكشنز الى هي
+    public ListBoxModel,
+    // فيه الفنكشنز الى هي
     //getNumRows و paintListBoxItem و listBoxItemDoubleClicked
       // و selectedRowsChanged
       // كل حاجه عاوزها فى البوكس بتاعة البلاي لست
-
-
+    public ChangeListener
 {
 public:
     PlayerGUI();
@@ -21,8 +20,6 @@ public:
 
     void updateLabel(const File& file);
     //void updateLabelUsingFFprobe(const File& file);// ما هذا
-
-
     void resized() override;
 
     void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
@@ -30,16 +27,22 @@ public:
     void releaseResources();
     void paint(Graphics& g) override;
     void timerCallback() override;
+    void changeListenerCallback(ChangeBroadcaster* source) override;
 
     int getNumRows() override;
     void paintListBoxItem(int row, Graphics& graph, int width, int height, bool rowIsSelected);
     void listBoxItemDoubleClicked(int row, const MouseEvent&) override;
     void selectedRowsChanged(int lastRow) override;
-    void listBoxItemClicked(int row, const MouseEvent& e)override;
-
+    void listBoxItemClicked(int row, const MouseEvent& e) override;
 
 private:
     PlayerAudio playerAudio;
+
+    // Waveform components
+    AudioFormatManager formatManager;
+    AudioThumbnailCache thumbnailCache;
+    AudioThumbnail audioThumbnail;
+    bool fileLoaded;
 
     // GUI elements
     TextButton loadButton{ "Load File" };
@@ -50,7 +53,6 @@ private:
     TextButton EndButton{ "Next >|" };
     TextButton muteButton{ "Mute" };
     TextButton addToPlaylistButton{ "Add To Playlist +_+" };
-    //TextButton removeButton{ "Remove" };
 
     Slider volumeSlider;
     Slider positionSlider;
@@ -58,23 +60,17 @@ private:
     Label speed_label;
     Label poslabel;
     Label endPos;
-    AudioFormatManager formatManager;
-
-
 
     unique_ptr<FileChooser> fileChooser;
     std::unique_ptr<juce::Drawable> playIconDrawable;
-
 
     // Event handlers
     void buttonClicked(Button* button) override;
     void sliderValueChanged(Slider* slider) override;
 
     Label infoLabel;
-
-    String displayText; //cpp على فكره ممكن احطه عادى ف ملف ال 
-
-
+    String displayText;
+    //cpp على فكره ممكن احطه عادى ف ملف ال
 
     File sessionFile;
     ValueTree appState{ "AppState" };
@@ -87,8 +83,9 @@ private:
     void playIndex(int row);
     static void safeButton_Colour(TextButton& btn, const String& text, const Colour& col);
 
-
+    // Mouse interaction for waveform
+    void mouseDown(const MouseEvent& event) override;
+    void mouseDrag(const MouseEvent& event) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
-
 };
