@@ -7,7 +7,7 @@ void PlayerGUI::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     playerAudio.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
-
+// تغيير لون الزر مع تغيير النص
 void PlayerGUI::safeButton_Colour(TextButton& btn, const String& text, const Colour& col)
 {
     btn.setButtonText(text);
@@ -19,15 +19,11 @@ void PlayerGUI::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     playerAudio.getNextAudioBlock(bufferToFill);
 
-    // ⬇️ أضف هذا الكود لإرسال البيانات الصوتية إلى الـ waveform
+	// send audio data to waveform visualiser
     if (bufferToFill.buffer->getNumChannels() > 0)
     {
-        // Get pointer to channel 0 data
         const float* channelData = bufferToFill.buffer->getReadPointer(0);
 
-        // JUCE's AudioVisualiserComponent expects an Array<float> or a pointer to float data for a single channel
-        // Use pushBuffer(const float* data, int numSamples)
-        // FIX: Use the correct overload, which takes an AudioBuffer<float>
         waveformVisualiser.pushBuffer(*bufferToFill.buffer);
     }
 }
@@ -41,16 +37,16 @@ PlayerGUI::PlayerGUI()
     : thumbnailCache(5),
     audioThumbnail(512, formatManager, thumbnailCache),
     fileLoaded(false),
-    waveformVisualiser(1) // ⬅️ عدد القنوات (1 كافي للعرض)
+	waveformVisualiser(1) // number of channels
 {
-    // ⬇️ إعداد الـ waveform visualiser
+    //waveform visualiser
     addAndMakeVisible(waveformVisualiser);
     waveformVisualiser.setRepaintRate(60);
     waveformVisualiser.setBufferSize(512);
     waveformVisualiser.setSamplesPerBlock(256);
     waveformVisualiser.setColours(Colours::black, Colours::cyan);
 
-    // باقي الكود الموجود...
+    // Add buttons
     formatManager.registerBasicFormats();
 
     for (auto* btn : { &loadButton, &restart_PreviousButton , &stopButton , &loopButton,&Pause_PlayButton,&EndButton,&muteButton,&addToPlaylistButton })
@@ -124,6 +120,46 @@ PlayerGUI::~PlayerGUI()
 {
     saveLastState();
 }
+//void PlayerGUI::resized()
+//{
+//    int y = 20;
+//    loadButton.setBounds(20, y, 100, 40);
+//    loadButton.setColour(TextButton::buttonColourId, Colours::blue);
+//
+//    loopButton.setBounds(250, y, 80, 40);
+//
+//    volumeSlider.setBounds(getWidth() - 110, 100, 100, 200);
+//    positionSlider.setBounds(20, 450, getWidth() - 40, 30);
+//
+//    //volumeSlider.setBounds(20, 100, getWidth() - 40, 30);
+//    volumeSlider.setColour(Slider::trackColourId, Colours::darkgrey);
+//
+//
+//    restart_PreviousButton.setBounds(250, 350, 80, 40);
+//    Pause_PlayButton.setBounds(350, 350, 80, 40);
+//    stopButton.setBounds(450, 350, 80, 40);
+//    EndButton.setBounds(550, 350, 80, 40);
+//
+//    //prevButton.setBounds(340, y, 80, 40);
+//    muteButton.setBounds(440, y, 80, 40);
+//
+//    infoLabel.setBounds(20, 100, getWidth() - 40, 60);
+//    poslabel.setBounds(20, 500, 100, 30);
+//    endPos.setBounds(getWidth() - 120, 500, 100, 30);
+//
+//    //speed slider and label
+//    speed_label.setBounds(20, 400, 80, 30);
+//    speed_slider.setBounds(110, 400, 200, 30);
+//
+//	// playlist button, box and remove button
+//    addToPlaylistButton.setBounds(20, 70, 140, 28);
+//   // removeButton.setBounds(170, 70, 80, 28);
+//    playlistBox.setBounds(20, 110, getWidth() - 160, 200);
+//
+//
+//
+//
+//}
 
 void PlayerGUI::resized()
 {
@@ -203,6 +239,12 @@ void PlayerGUI::updateLabel(const File& file) {
         auto metadata = reader->metadataValues;
         if (metadata.size() > 0) {
             String title = metadata.getValue("title", metadata.getValue("TITLE", "unKnown"));
+            // السطر ده معمول عشان لو الميتاداتا جواها العنوان مكتوب بكابيتال او سمول 
+           // ممكن اعملى زيه الى تحت نفس الفكره
+           /*string title = metadata.getValue("title","");
+           if (title.empty()) {
+               title = metadata.getValue("TITLE","unKnown");
+           }*/
             String artist = metadata.getValue("artist", metadata.getValue("ARTIST", "unknown"));
 
             double duration = reader->lengthInSamples / reader->sampleRate;
@@ -217,13 +259,15 @@ void PlayerGUI::updateLabel(const File& file) {
             displayText = "File: " + file.getFileName();
         }
         infoLabel.setText(displayText, dontSendNotification);
+        // مترسلش نوتفيكشن ده معمول عشان مش عاوز اعرف اليوزر ان فيه تغير حصل فى التيكست بتاع الليبل
+
 
         // Load waveform for the file
         audioThumbnail.clear();
         audioThumbnail.setSource(new FileInputSource(file));
         fileLoaded = true;
 
-        // ⬇️ مسح الـ waveform القديم
+		//delete previous waveform data
         waveformVisualiser.clear();
     }
     else {
@@ -364,7 +408,7 @@ void PlayerGUI::timerCallback()
         }
     }
 
-    // Update position labels
+    // update position labels
     int mins = (int)(currentPos / 60);
     int secs = (int)(round(currentPos)) % 60;
     String positionText = String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
@@ -375,7 +419,7 @@ void PlayerGUI::timerCallback()
     String endPositionText = String(totalMins).paddedLeft('0', 2) + ":" + String(totalSecs).paddedLeft('0', 2);
     endPos.setText(endPositionText, dontSendNotification);
 
-    // Repaint to update waveform display
+    // repaint to update waveform display
     repaint();
 }
 
@@ -389,7 +433,7 @@ void PlayerGUI::changeListenerCallback(ChangeBroadcaster* source)
 
 void PlayerGUI::mouseDown(const MouseEvent& event)
 {
-    // Handle clicking on waveform to seek
+    // handle clicking on waveform to seek
     auto waveformArea = positionSlider.getBounds();
     if (waveformArea.contains(event.getPosition()))
     {
@@ -402,7 +446,7 @@ void PlayerGUI::mouseDown(const MouseEvent& event)
 
 void PlayerGUI::mouseDrag(const MouseEvent& event)
 {
-    // Handle dragging on waveform to seek
+    // handle dragging on waveform to seek
     auto waveformArea = positionSlider.getBounds();
     if (waveformArea.contains(event.getPosition()))
     {
@@ -422,6 +466,7 @@ int PlayerGUI::getNumRows()
 }
 
 void PlayerGUI::paintListBoxItem(int row, Graphics& graph, int width, int height, bool rowIsSelected) {
+    
     if (row < 0 || row >= playlist.size()) return;
     if (rowIsSelected) {
         graph.fillAll(Colours::lightblue);
@@ -434,6 +479,7 @@ void PlayerGUI::paintListBoxItem(int row, Graphics& graph, int width, int height
     graph.drawText(filename, 4, 0, width - 4, height, Justification::centredLeft, true);
 }
 
+//عشان اما تغغط مرتين يغير رقم الاندكس و يشغل الاغنيه
 void PlayerGUI::listBoxItemDoubleClicked(int row, const MouseEvent&)
 {
     playIndex(row);
@@ -441,12 +487,14 @@ void PlayerGUI::listBoxItemDoubleClicked(int row, const MouseEvent&)
 
 void PlayerGUI::listBoxItemClicked(int row, const MouseEvent& e)
 {
+    // صححنا شرط التحقق من الـ row
     if (row < 0 || row >= playlist.size()) return;
 
-    if (e.mods.isPopupMenu()) {
+    if (e.mods.isPopupMenu()) {// to check if user press right click
         PopupMenu menu;
         menu.addItem(1, "Play");
         menu.addItem(2, "Remove");
+        // capture a copy of row (already captured in lambda) -- fine
         menu.showMenuAsync(PopupMenu::Options().withTargetScreenArea(Rectangle<int>(e.getScreenPosition().x, e.getScreenPosition().y, 1, 1)), [this, row](int click)
             {
                 if (click == 1)
@@ -521,8 +569,10 @@ void PlayerGUI::listBoxItemClicked(int row, const MouseEvent& e)
 void PlayerGUI::selectedRowsChanged(int lastRow)
 {
     currentIndex = lastRow;
+    //playIndex(currentIndex);
 }
 
+//الاغنيه اللى الشغاله من البلاي ليست و رقم الاندكس بتاعها
 void PlayerGUI::playIndex(int row) {
     if (row >= 0 && row < playlist.size()) {
         File fileToPlay(playlist[row]);
