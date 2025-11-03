@@ -34,6 +34,13 @@ public:
     double getALoopPoint() const;
     double getBLoopPoint() const;
 
+    void aad_marker(double pos);
+    void remove_marker(int index);
+    void clear_markers();
+    void jump_to_marker(int index);
+    const std::vector<double>& get_markers() const;
+    double get_marker_position(int index) const;
+
 
 
 
@@ -48,6 +55,8 @@ private:
     float current_speed = 1.0f;
     double aLoopPoint = 0.0;
     double bLoopPoint = 0.0;
+    std::vector<double> markers;
+
 
     File currentFile;
 

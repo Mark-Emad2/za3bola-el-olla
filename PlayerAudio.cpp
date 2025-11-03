@@ -136,6 +136,7 @@ bool PlayerAudio::isPlaying() const
 
 void PlayerAudio::set_speed(float speed)
 {
+
     speed = jlimit(0.25f, 2.0f, speed);
     current_speed = speed;
     resampleSource.setResamplingRatio(speed);
@@ -166,4 +167,29 @@ double PlayerAudio::getALoopPoint() const
 double PlayerAudio::getBLoopPoint() const
 {
     return bLoopPoint;
+}
+void PlayerAudio::aad_marker(double pos) {
+    markers.push_back(pos);
+}
+void PlayerAudio::remove_marker(int index) {
+    if (index >= 0 && index < markers.size()) {
+        markers.erase(markers.begin() + index);
+    }
+}
+void PlayerAudio::clear_markers() {
+    markers.clear();
+}
+void PlayerAudio::jump_to_marker(int index) {
+    if (index >= 0 && index < markers.size()) {
+        setPosition(markers[index]);
+    }
+}
+const std::vector<double>& PlayerAudio::get_markers() const {
+    return markers;
+}
+double PlayerAudio::get_marker_position(int index) const {
+    if (index >= 0 && index < markers.size()) {
+        return markers[index];
+    }
+    return -1.0;
 }
