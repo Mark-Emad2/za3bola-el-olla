@@ -56,7 +56,7 @@ bool PlayerAudio::loadFile(const File& file)
                 nullptr,
                 reader->sampleRate);
 
-            set_speed(current_speed);
+            set_speed(1.0f);
 
             // transportSource.start();
         }
@@ -110,6 +110,20 @@ bool PlayerAudio::muted() const
 {
     return ismuted;
 }
+void PlayerAudio::loop()
+{
+    if (islooping) {
+        islooping = false;
+    }
+    else {
+        islooping = true;
+    }
+
+}
+bool PlayerAudio::isLooping() const
+{
+    return islooping;
+}
 float PlayerAudio::get_current_gain() const
 {
     return ismuted ? last_value : transportSource.getGain();
@@ -117,13 +131,12 @@ float PlayerAudio::get_current_gain() const
 
 bool PlayerAudio::isPlaying() const
 {
-   return transportSource.isPlaying();
+    return transportSource.isPlaying();
 }
 
 void PlayerAudio::set_speed(float speed)
 {
-	speed = jlimit(0.25f, 2.0f, speed);
-	current_speed = speed;
+    speed = jlimit(0.25f, 2.0f, speed);
     resampleSource.setResamplingRatio(speed);
 }
 
@@ -133,3 +146,23 @@ float PlayerAudio::get_speed() const
 }
 File PlayerAudio::getCurrentFile() const { return currentFile; };
 
+
+void PlayerAudio::setALoopPoint(double pos)
+{
+    aLoopPoint = pos;
+
+}
+void PlayerAudio::setBLoopPoint(double pos)
+{
+    bLoopPoint = pos;
+}
+
+double PlayerAudio::getALoopPoint() const
+{
+
+    return aLoopPoint;
+}
+double PlayerAudio::getBLoopPoint() const
+{
+    return bLoopPoint;
+}

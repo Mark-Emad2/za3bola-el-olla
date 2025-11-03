@@ -21,12 +21,19 @@ public:
     double getLength() const;
     void mute();
     bool muted()const;
+    void loop();
+    bool isLooping() const;
     float get_current_gain()const;
     bool isPlaying() const;
 
     File getCurrentFile() const;
     void set_speed(float speed);
     float get_speed() const;
+    void setALoopPoint(double pos);
+    void setBLoopPoint(double pos);
+    double getALoopPoint() const;
+    double getBLoopPoint() const;
+
 
 
 
@@ -37,7 +44,10 @@ private:
     ResamplingAudioSource resampleSource;
     float last_value = 1.0f;
     bool ismuted = false;
+    bool islooping = false;
     float current_speed = 1.0f;
+    double aLoopPoint = 0.0;
+    double bLoopPoint = 0.0;
 
     File currentFile;
 
