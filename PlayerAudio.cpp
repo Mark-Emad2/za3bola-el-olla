@@ -56,7 +56,7 @@ bool PlayerAudio::loadFile(const File& file)
                 nullptr,
                 reader->sampleRate);
 
-            set_speed(1.0f);
+            set_speed(current_speed);
 
             // transportSource.start();
         }
@@ -137,6 +137,7 @@ bool PlayerAudio::isPlaying() const
 void PlayerAudio::set_speed(float speed)
 {
     speed = jlimit(0.25f, 2.0f, speed);
+    current_speed = speed;
     resampleSource.setResamplingRatio(speed);
 }
 
