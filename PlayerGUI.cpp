@@ -373,7 +373,7 @@ void PlayerGUI::saveLastState()
     appState.setProperty("lastPosition", playerAudio.getPosition(), nullptr);
     appState.setProperty("lastVolume", volumeSlider.getValue(), nullptr);
     appState.setProperty("lastPositionSlider", The_bar_pos.getValue(), nullptr);
-    appState.setProperty("currentIndex", currentIndex, nullptr); // ✅ أضف السطر ده
+    appState.setProperty("currentIndex", currentIndex, nullptr); 
 
 
 

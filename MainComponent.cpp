@@ -34,17 +34,17 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
         // clear buffer first
         bufferToFill.clearActiveBufferRegion();
 
-        // create a temporary buffer just for player2
+        // make temp buffer
         AudioBuffer<float> tempBuffer(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
         AudioSourceChannelInfo tempInfo(&tempBuffer, 0, bufferToFill.numSamples);
 
-        // get player1 audio directly to output
+		// player 1 directly to output
         player1.getNextAudioBlock(bufferToFill);
 
-        // get player2 audio to temporary buffer
+		// player 2 to temp buffer
         player2.getNextAudioBlock(tempInfo);
 
-        // mixing player2 into output with reduced volume
+		// mix two palyers together
         for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
         {
             auto* output = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
@@ -71,18 +71,18 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds();
 
-    // Simple mixer toggle at top
+    // but mixeer on top
     auto mixerArea = area.removeFromTop(40);
     mixerToggleButton.setBounds(mixerArea.reduced(10, 5));
 
-    // Players below - equal split
+    // split players
     auto player1Area = area.removeFromLeft(getWidth() / 2);
     auto player2Area = area;
 
     player1.setBounds(player1Area.reduced(10));
     player2.setBounds(player2Area.reduced(10));
 }
-void MainComponent::buttonClicked(Button* button) {
+void MainComponent::button_clicked(Button* button) {
     if (button == &mixerToggleButton) {
         mixer_enabled = mixerToggleButton.getToggleState();
 
