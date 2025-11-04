@@ -223,6 +223,7 @@ private:
     Image ALOOP_slider;
     Image BLOOP_slider;
     Image addMarkerImage;
+    Image backgroundImage;
 
 
 

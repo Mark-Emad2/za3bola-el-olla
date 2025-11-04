@@ -64,28 +64,29 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
         addAndMakeVisible(btn);
     }
     The_bar_pos.setLookAndFeel(this);
-    loopOffImage = ImageCache::getFromMemory(BinaryData::loop_2_png, BinaryData::loop_2_pngSize);
-    loopOnImage = ImageCache::getFromMemory(BinaryData::LLOOP_png, BinaryData::LLOOP_pngSize);
+    loopOffImage = ImageCache::getFromMemory(BinaryData::reload_png, BinaryData::reload_pngSize);
+    loopOnImage = ImageCache::getFromMemory(BinaryData::reload_1_png, BinaryData::reload_1_pngSize);
 
-    muteOnImage = ImageCache::getFromMemory(BinaryData::mute_png, BinaryData::mute_pngSize);
-    muteOffImage = ImageCache::getFromMemory(BinaryData::volume_png, BinaryData::volume_pngSize);
+    muteOnImage = ImageCache::getFromMemory(BinaryData::mute_1_png, BinaryData::mute_1_pngSize);
+    muteOffImage = ImageCache::getFromMemory(BinaryData::volume_1_png, BinaryData::volume_1_pngSize);
 
-    loadImage = ImageCache::getFromMemory(BinaryData::arrow_png, BinaryData::arrow_pngSize);
-    addToPlaylistImage = ImageCache::getFromMemory(BinaryData::add_png, BinaryData::add_pngSize);
+    loadImage = ImageCache::getFromMemory(BinaryData::curved_png, BinaryData::curved_pngSize);
+    addToPlaylistImage = ImageCache::getFromMemory(BinaryData::download_png, BinaryData::download_pngSize);
     stopImage = ImageCache::getFromMemory(BinaryData::stop_png, BinaryData::stop_pngSize);
-    restartPreviousImage = ImageCache::getFromMemory(BinaryData::rewindsign_png, BinaryData::rewindsign_pngSize);
-    endImage = ImageCache::getFromMemory(BinaryData::fastforwardbutton_png, BinaryData::fastforwardbutton_pngSize);
-    playImage = ImageCache::getFromMemory(BinaryData::playbuttonarrowhead_png, BinaryData::playbuttonarrowhead_pngSize);
-    pauseImage = ImageCache::getFromMemory(BinaryData::pause_png, BinaryData::pause_pngSize);
-    forwardImage = ImageCache::getFromMemory(BinaryData::forward_png, BinaryData::forward_pngSize);
-    backImage = ImageCache::getFromMemory(BinaryData::backward_png, BinaryData::backward_pngSize);
+    restartPreviousImage = ImageCache::getFromMemory(BinaryData::backward_2_png, BinaryData::backward_2_pngSize);
+    endImage = ImageCache::getFromMemory(BinaryData::forward_1_png, BinaryData::forward_1_pngSize);
+    playImage = ImageCache::getFromMemory(BinaryData::playbutton_png, BinaryData::playbutton_pngSize);
+    pauseImage = ImageCache::getFromMemory(BinaryData::pausebutton_png, BinaryData::pausebutton_pngSize);
+    forwardImage = ImageCache::getFromMemory(BinaryData::ten_png, BinaryData::ten_pngSize);
+    backImage = ImageCache::getFromMemory(BinaryData::ten_1_png, BinaryData::ten_1_pngSize);
     Aloop = ImageCache::getFromMemory(BinaryData::lettera_1_png, BinaryData::lettera_1_pngSize);
     Bloop = ImageCache::getFromMemory(BinaryData::letterb_1_png, BinaryData::letterb_1_pngSize);
-    A_B_LOOP_Image = ImageCache::getFromMemory(BinaryData::abtesting_png, BinaryData::abtesting_pngSize);
+    A_B_LOOP_Image = ImageCache::getFromMemory(BinaryData::ab_png, BinaryData::ab_pngSize);
     ALOOP_slider = ImageCache::getFromMemory(BinaryData::lettera_png, BinaryData::lettera_pngSize);
     BLOOP_slider = ImageCache::getFromMemory(BinaryData::letterb_png, BinaryData::letterb_pngSize);
 
-    addMarkerImage = ImageCache::getFromMemory(BinaryData::add_png, BinaryData::add_pngSize); // <-- استخدمنا نفس صورة الـ Add
+    addMarkerImage = ImageCache::getFromMemory(BinaryData::mark_png, BinaryData::mark_pngSize);
+    backgroundImage = ImageCache::getFromMemory(BinaryData::Dark_Wallpaper_Purple_By_Ahelton84_Customization_Abstract_png, BinaryData::Dark_Wallpaper_Purple_By_Ahelton84_Customization_Abstract_pngSize);
     //i have to change the image because it's not suitable for add marker  
 
     addMarkerButton.setImages(false, true, true,
@@ -704,7 +705,7 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
 
 void PlayerGUI::paint(Graphics& g)
 {
-    g.fillAll(Colours::grey);
+    g.drawImage(backgroundImage, getLocalBounds().toFloat());
     g.setColour(Colours::white);
     g.setFont(14.0f);
     //String speedText = String(playerAudio.get_speed(), 2) + "x";
