@@ -34,20 +34,20 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
 void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     if (mixer_enabled) {
-        // clear buffer first
+        // clear buffer
         bufferToFill.clearActiveBufferRegion();
 
-        // create a temporary buffer just for player2
+		// make temp buffer for player2
         AudioBuffer<float> tempBuffer(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
         AudioSourceChannelInfo tempInfo(&tempBuffer, 0, bufferToFill.numSamples);
 
-        // get player1 audio directly to output
+		// player1 to output buffer
         player1.getNextAudioBlock(bufferToFill);
 
-        // get player2 audio to temporary buffer
+        // player2 to temporary buffer
         player2.getNextAudioBlock(tempInfo);
 
-        // mixing player2 into output with reduced volume
+        // mix audio
         for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
         {
             auto* output = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
@@ -55,7 +55,7 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
 
             for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
             {
-                output[sample] += player2Data[sample] * 0.5f; // 50% volume
+                output[sample] += player2Data[sample] * 0.5f;
             }
         }
     }
@@ -64,7 +64,7 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
     }
 
 }
-}
+
 
 void MainComponent::releaseResources()
 {
@@ -75,18 +75,18 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds();
 
-    // Simple mixer toggle at top
+    // mixer button at the top
     auto mixerArea = area.removeFromTop(40);
     mixerToggleButton.setBounds(mixerArea.reduced(10, 5));
 
-    // Players below - equal split
+	//split screen for two players
     auto player1Area = area.removeFromLeft(getWidth() / 2);
     auto player2Area = area;
 
     player1.setBounds(player1Area.reduced(10));
     player2.setBounds(player2Area.reduced(10));
 }
-void MainComponent::buttonClicked(Button* button) {
+void MainComponent::button_clicked(Button* button) {
     if (button == &mixerToggleButton) {
         mixer_enabled = mixerToggleButton.getToggleState();
 
@@ -99,4 +99,109 @@ void MainComponent::buttonClicked(Button* button) {
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::red);
         }
     }
+}
+bool MainComponent::key_pressed(const KeyPress& key)
+{
+    bool ctrlPressed = key.getModifiers().isCtrlDown();
+    bool shiftPressed = key.getModifiers().isShiftDown();
+
+    // pause (space)
+    if (key.getKeyCode() == KeyPress::spaceKey)
+    {
+        if (ctrlPressed) {
+            // both players (button +control)
+            player1.Pause_PlayButton.triggerClick();
+            player2.Pause_PlayButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            // player 2 (shift+button)
+            player2.Pause_PlayButton.triggerClick();
+        }
+        else {
+            // player 1 (button)
+            player1.Pause_PlayButton.triggerClick();
+        }
+        return true;
+    }
+
+    // stop (escape)
+    if (key.getKeyCode() == 's' || key.getKeyCode() == 'S')
+    {
+        if (ctrlPressed) {
+            player1.stopButton.triggerClick();
+            player2.stopButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.stopButton.triggerClick();
+        }
+        else {
+            player1.stopButton.triggerClick();
+        }
+        return true;
+    }
+
+    // mute (m)
+    if (key.getKeyCode() == 'm' || key.getKeyCode() == 'M')
+    {
+        if (ctrlPressed) {
+            player1.muteButton.triggerClick();
+            player2.muteButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.muteButton.triggerClick();
+        }
+        else {
+            player1.muteButton.triggerClick();
+        }
+        return true;
+    }
+
+    // loop (l)
+    if (key.getKeyCode() == 'l' || key.getKeyCode() == 'L')
+    {
+        if (ctrlPressed) {
+            player1.loopButton.triggerClick();
+            player2.loopButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.loopButton.triggerClick();
+        }
+        else {
+            player1.loopButton.triggerClick();
+        }
+        return true;
+    }
+
+    // move back (left arrow)
+    if (key.getKeyCode() == KeyPress::leftKey)
+    {
+        if (ctrlPressed) {
+            player1.backButton.triggerClick();
+            player2.backButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.backButton.triggerClick();
+        }
+        else {
+            player1.backButton.triggerClick();
+        }
+        return true;
+    }
+    //move forward (right arrow)
+    if (key.getKeyCode() == KeyPress::rightKey)
+    {
+        if (ctrlPressed) {
+            player1.forwardButton.triggerClick();
+            player2.forwardButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.forwardButton.triggerClick();
+        }
+        else {
+            player1.forwardButton.triggerClick();
+        }
+        return true;
+    }
+
+    return false;
 }

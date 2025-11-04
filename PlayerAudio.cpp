@@ -56,7 +56,7 @@ bool PlayerAudio::loadFile(const File& file)
                 nullptr,
                 reader->sampleRate);
 
-            set_speed(current_speed);
+            set_speed(current_speed);//keep current speed after loading new file
 
             // transportSource.start();
         }
@@ -75,8 +75,11 @@ void PlayerAudio::stop()
 {
     transportSource.stop();
 }
+//edited for mute
 void PlayerAudio::setGain(float gain)
 {
+    //to allways safe the last value
+    //fix for unmute while muted when prissing the slider
     last_value = gain;
     if (!ismuted)
         transportSource.setGain(gain);
@@ -96,11 +99,15 @@ double PlayerAudio::getLength() const
     return transportSource.getLengthInSeconds();
 }
 void PlayerAudio::mute() {
+
+    // falg is set to false so that the program isn't muted by defualt
     if (ismuted) {
         transportSource.setGain(last_value);
         ismuted = false;
     }
     else {
+
+        //save volume before muting
         last_value = transportSource.getGain();
         transportSource.setGain(0.0f);
         ismuted = true;
@@ -124,10 +131,6 @@ bool PlayerAudio::isLooping() const
 {
     return islooping;
 }
-float PlayerAudio::get_current_gain() const
-{
-    return ismuted ? last_value : transportSource.getGain();
-}
 
 bool PlayerAudio::isPlaying() const
 {
@@ -136,7 +139,7 @@ bool PlayerAudio::isPlaying() const
 
 void PlayerAudio::set_speed(float speed)
 {
-
+    // jlimit sets the min to 0.25 and max to 2.0
     speed = jlimit(0.25f, 2.0f, speed);
     current_speed = speed;
     resampleSource.setResamplingRatio(speed);

@@ -14,18 +14,21 @@ public:
     void getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
     void resized() override;
-    void buttonClicked(Button* button) override;
+    void button_clicked(Button* button) override;
 
 
 private:
     PlayerGUI player1;
     PlayerGUI player2;
 
-    float player1MixLevel = 0.5f;
-    float player2MixLevel = 0.5f;
+    float player1_mixLevel = 0.5f;
+    float player2_mixLevel = 0.5f;
 
     ToggleButton mixerToggleButton;
     bool mixer_enabled = true;
+
+    //button mapping
+    bool key_pressed(const KeyPress& key) override;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

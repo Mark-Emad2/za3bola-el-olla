@@ -224,12 +224,10 @@ private:
     Image BLOOP_slider;
     Image addMarkerImage;
 
-    void mouseDown(const MouseEvent& event) override;
-    void mouseDrag(const MouseEvent& event) override;
 
 
 
 
+    friend class MainComponent;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
-
 };
