@@ -54,7 +54,10 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     waveformVisualiser.setRepaintRate(60);
     waveformVisualiser.setBufferSize(512);
     waveformVisualiser.setSamplesPerBlock(256);
-    waveformVisualiser.setColours(Colours::black, Colours::cyan);
+    // (اللون الأول هو الخلفية، والثاني هو الموجة)
+// (اللون الأول هو الخلفية، والثاني هو الموجة)
+    waveformVisualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
+    //waveformVisualiser.setColours(juce::Colour(0xFF2E1C40), juce::Colours::cyan);
     // Add buttons
     formatManager.registerBasicFormats();
 
@@ -992,22 +995,55 @@ void PlayerGUI::playIndex(int row) {
 }
 
 
-void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int height, float sliderPos, float minSliderPos, float maxSliderPos, Slider::SliderStyle style, Slider& slider)
+void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int height,
+    float sliderPos, float minSliderPos, float maxSliderPos,
+    Slider::SliderStyle style, Slider& slider)
 {
-    LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
+    // 1. (السطر ده اتشال) كنا بنرسم الشكل الافتراضي هنا.
+    // LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
 
-    // 2. اتأكد إننا بنرسم على الـ positionSlider بس (مش الـ volumeSlider)
     if (&slider == &The_bar_pos)
     {
-        auto range = The_bar_pos.getRange();
+        // --- 1. ارسم الـ Track (الخلفية) ---
+        float trackHeight = 6.0f; // سمك الخط
+        float trackY = (float)y + ((float)height - trackHeight) * 0.5f; // توسطن الخط
+        juce::Rectangle<float> trackBounds((float)x, trackY, (float)width, trackHeight);
 
+        // ارسم الخلفية (اللون الفاضي)
+        g.setColour(juce::Colours::darkgrey); // <--- ★ لون الخلفية (الفاضي)
+        g.fillRoundedRectangle(trackBounds, trackHeight * 0.5f);
+
+        // --- 2. ارسم الجزء المليان (Filled) ---
+        // (sliderPos هو مكان المقبض بالبيكسل)
+        float filledWidth = sliderPos - (float)x;
+        if (filledWidth > 0)
+        {
+            juce::Rectangle<float> filledBounds((float)x, trackY, filledWidth, trackHeight);
+            g.setColour(juce::Colours::cyan); // <--- ★ لون الجزء المليان
+            g.fillRoundedRectangle(filledBounds, trackHeight * 0.5f);
+        }
+
+        // --- 3. ارسم الـ Thumb (المقبض اللي بيتحرك) ---
+        float thumbWidth = 16.0f;
+        float thumbHeight = 16.0f;
+        float thumbX = sliderPos - (thumbWidth * 0.5f); // خليه في النص
+        float thumbY = (float)y + ((float)height - thumbHeight) * 0.5f; // خليه في النص
+        juce::Rectangle<float> thumbBounds(thumbX, thumbY, thumbWidth, thumbHeight);
+
+        g.setColour(juce::Colours::white); // <--- ★ لون المقبض (الـ Thumb)
+        g.fillEllipse(thumbBounds); // ارسمه كدايرة
+        g.setColour(juce::Colours::black.withAlpha(0.5f));
+        g.drawEllipse(thumbBounds, 1.0f); // إطار خفيف
+
+
+        // --- 4. كود الـ A-B Loop بتاعك (زي ما هو بالظبط) ---
+        auto range = The_bar_pos.getRange();
         auto valueToPixel = [&](double value) -> float
             {
                 double proportion = The_bar_pos.valueToProportionOfLength(value);
-                return jmap((float)proportion, 0.0f, 1.0f, (float)x, (float)(x + width));
+                return juce::jmap((float)proportion, 0.0f, 1.0f, (float)x, (float)(x + width));
             };
 
-        // نعرف المتغيرات هنا بحيث تكون متاحة لأي بلوك داخل هذه الدالة
         float a_x_pos = 0.0f;
         float b_x_pos = 0.0f;
         bool hasA = false;
@@ -1018,15 +1054,11 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             double aPointTime = playerAudio.getALoopPoint();
             a_x_pos = valueToPixel(aPointTime);
             hasA = true;
-
+            // ... (باقي كود رسم صورة A) ...
             float aspectRatio = (float)ALOOP_slider.getWidth() / (float)ALOOP_slider.getHeight();
             int imageWidth = (int)((float)height * aspectRatio);
-            int imageX = (int)(a_x_pos - (float)imageWidth / 2.0f); // عشان الصورة تتوسط عند النقطة
-
-            g.drawImage(ALOOP_slider,
-                imageX, y, imageWidth, height, // المكان والحجم اللي هيترسم فيه
-                0, 0, ALOOP_slider.getWidth(), ALOOP_slider.getHeight() // المكان اللي هيتاخد من الصورة (الصورة كلها)
-            );
+            int imageX = (int)(a_x_pos - (float)imageWidth / 2.0f);
+            g.drawImage(ALOOP_slider, imageX, y, imageWidth, height, 0, 0, ALOOP_slider.getWidth(), ALOOP_slider.getHeight());
         }
 
         if (loopState >= 2)
@@ -1034,55 +1066,31 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             double bPointTime = playerAudio.getBLoopPoint();
             b_x_pos = valueToPixel(bPointTime);
             hasB = true;
-
+            // ... (باقي كود رسم صورة B) ...
             float aspectRatio = (float)BLOOP_slider.getWidth() / (float)BLOOP_slider.getHeight();
             int imageWidth = (int)((float)height * aspectRatio);
             int imageX = (int)(b_x_pos - (float)imageWidth / 2.0f);
-            g.drawImage(BLOOP_slider,
-                imageX, y, imageWidth, height, // المكان والحجم اللي هيترسم فيه
-                0, 0, BLOOP_slider.getWidth(), BLOOP_slider.getHeight() // المكان اللي هيتاخد من الصورة (الصورة كلها)
-            );
+            g.drawImage(BLOOP_slider, imageX, y, imageWidth, height, 0, 0, BLOOP_slider.getWidth(), BLOOP_slider.getHeight());
         }
 
-        // لو كلتا النقطتين موجودتين — نرسم التظليل بينهما
         if (hasA && hasB)
         {
-            float left = jmin(a_x_pos, b_x_pos);
-            float right = jmax(a_x_pos, b_x_pos);
+            float left = juce::jmin(a_x_pos, b_x_pos);
+            float right = juce::jmax(a_x_pos, b_x_pos);
             float widthRect = right - left;
-
-            if (widthRect > 0.0f) // تأكد من أن العرض موجب
+            if (widthRect > 0.0f)
             {
-                g.setColour(Colours::cyan.withAlpha(0.15f));
+                g.setColour(juce::Colours::cyan.withAlpha(0.15f));
                 g.fillRect(left, (float)y, widthRect, (float)height);
             }
         }
-
-
-        auto& markers = playerAudio.get_markers();
-
-        for (double markerTime : markers)
-        {
-            // 1. نحول وقت الماركر (بالثواني) لنسبة (0.0 - 1.0)
-            double proportion = The_bar_pos.valueToProportionOfLength(markerTime);
-
-            // 2. نحول النسبة دي لمكان (X) على الشاشة
-            float marker_x_pos = (float)(x + (proportion * width));
-
-            // 3. نرسم خط عمودي رفيع مكان الماركر
-            // (هنرسمه كـ "مثلث" صغير عشان يبقى شكله أحسن)
-            juce::Path markerShape;
-            markerShape.startNewSubPath(marker_x_pos, (float)y); // رأس المثلث (فوق)
-            markerShape.lineTo(marker_x_pos - 4.0f, (float)(y + 8)); // نقطة شمال تحت
-            markerShape.lineTo(marker_x_pos + 4.0f, (float)(y + 8)); // نقطة يمين تحت
-            markerShape.closeSubPath(); // نقفل المثلث
-
-            g.fillPath(markerShape);
-        }
-
-
     }
-
+    else
+    {
+        // لو السلايدر ده مش The_bar_pos (زي الفوليوم مثلاً لو استخدم نفس اللوك اند فيل)
+        // ارسمه بالشكل الافتراضي وخلاص
+        LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
+    }
 }
 
 

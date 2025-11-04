@@ -15,9 +15,9 @@ MainComponent::MainComponent()
     mixerToggleButton.setButtonText("Mixer: ON");
     mixerToggleButton.setToggleState(true, dontSendNotification);
     mixerToggleButton.addListener(this);
-    mixerToggleButton.setColour(ToggleButton::textColourId, Colours::white);
-    mixerToggleButton.setColour(ToggleButton::tickColourId, Colours::lime);
-    mixerToggleButton.setColour(ToggleButton::tickDisabledColourId, Colours::red);
+    mixerToggleButton.setColour(ToggleButton::textColourId, Colours::black);
+    mixerToggleButton.setColour(ToggleButton::tickColourId, Colours::black);
+    mixerToggleButton.setColour(ToggleButton::tickDisabledColourId, Colours::mediumpurple);
     addAndMakeVisible(mixerToggleButton);
 }
 MainComponent::~MainComponent()
@@ -92,11 +92,11 @@ void MainComponent::buttonClicked(Button* button) {
 
         if (mixer_enabled) {
             mixerToggleButton.setButtonText("Mixer: ON");
-            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::lime);
+            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::black);
         }
         else {
             mixerToggleButton.setButtonText("Mixer: OFF");
-            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::red);
+            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::purple);
         }
     }
 }
