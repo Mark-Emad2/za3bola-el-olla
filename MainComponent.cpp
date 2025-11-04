@@ -86,7 +86,7 @@ void MainComponent::resized()
     player1.setBounds(player1Area.reduced(10));
     player2.setBounds(player2Area.reduced(10));
 }
-void MainComponent::button_clicked(Button* button) {
+void MainComponent::buttonClicked(Button* button) {
     if (button == &mixerToggleButton) {
         mixer_enabled = mixerToggleButton.getToggleState();
 
@@ -100,7 +100,7 @@ void MainComponent::button_clicked(Button* button) {
         }
     }
 }
-bool MainComponent::key_pressed(const KeyPress& key)
+bool MainComponent::keyPressed(const KeyPress& key)
 {
     bool ctrlPressed = key.getModifiers().isCtrlDown();
     bool shiftPressed = key.getModifiers().isShiftDown();
