@@ -776,6 +776,18 @@ void PlayerGUI::timerCallback()
             playerAudio.stop();
             playerAudio.setPosition(playerAudio.getALoopPoint());
             playerAudio.start();
+            if (playerAudio.isPlaying()) {
+                Pause_PlayButton.setImages(false, true, true,
+                    pauseImage, 1.0f, Colours::transparentBlack,
+                    pauseImage, 1.0f, Colours::white,
+                    pauseImage, 1.0f, Colours::transparentBlack);
+            }
+            else {
+                Pause_PlayButton.setImages(false, true, true,
+                    playImage, 1.0f, Colours::transparentBlack,
+                    playImage, 1.0f, Colours::white,
+                    playImage, 1.0f, Colours::transparentBlack);
+            }
         }
 
     }
@@ -940,6 +952,7 @@ void PlayerGUI::selectedRowsChanged(int lastRow)
 
 //الاغنيه اللى الشغاله من البلاي ليست و رقم الاندكس بتاعها
 void PlayerGUI::playIndex(int row) {
+    resetLoopPoints();
     if (row >= 0 && row < playlist.size()) { // بتاكد ان الرو بتاع الاندكس جوه الرينج
 
         File fileToPlay(playlist[row]);
@@ -1293,4 +1306,20 @@ void PlayerGUI::buttonClicked(Button* button)
         }
         playerAudio.setPosition(newPos);
     }
+    else if (button == &backButton) {
+        double newPos = playerAudio.getPosition() - 10.0;
+        if (newPos < 0.0) {
+            newPos = 0.0;
+        }
+        playerAudio.setPosition(newPos);
+    }
+    else if (button == &addMarkerButton)
+    {
+        double currentPos = playerAudio.getPosition();
+        playerAudio.aad_marker(currentPos); // ضيف الماركر
+        markerBox.updateContent(); // حدث الليستة عشان الماركر الجديد يظهر
+        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1); // ينزل لأخر ماركر
+        The_bar_pos.repaint(); // <-- ضيف السطر ده
+    }
+
 }

@@ -37,11 +37,11 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
         // clear buffer
         bufferToFill.clearActiveBufferRegion();
 
-		// make temp buffer for player2
+        // make temp buffer for player2
         AudioBuffer<float> tempBuffer(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
         AudioSourceChannelInfo tempInfo(&tempBuffer, 0, bufferToFill.numSamples);
 
-		// player1 to output buffer
+        // player1 to output buffer
         player1.getNextAudioBlock(bufferToFill);
 
         // player2 to temporary buffer
@@ -79,7 +79,7 @@ void MainComponent::resized()
     auto mixerArea = area.removeFromTop(40);
     mixerToggleButton.setBounds(mixerArea.reduced(10, 5));
 
-	//split screen for two players
+    //split screen for two players
     auto player1Area = area.removeFromLeft(getWidth() / 2);
     auto player2Area = area;
 

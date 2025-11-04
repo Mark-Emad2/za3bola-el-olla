@@ -18,7 +18,7 @@ public:
 
     void buttonClicked(Button* button) override;
 
-   
+
     bool keyPressed(const KeyPress& key) override;
 
 private:
