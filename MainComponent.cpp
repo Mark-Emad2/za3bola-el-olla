@@ -64,6 +64,7 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
     }
 
 }
+}
 
 void MainComponent::releaseResources()
 {

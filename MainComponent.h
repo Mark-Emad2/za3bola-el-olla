@@ -14,7 +14,7 @@ public:
     void getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
     void resized() override;
-    void button_clicked(Button* button) override;
+    void buttonClicked(Button* button) override;
 
 
 private:

@@ -58,7 +58,7 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     // Add buttons
     formatManager.registerBasicFormats();
 
-    for (auto* btn : { &loadButton, &restart_PreviousButton , &stopButton ,&Pause_PlayButton,&EndButton,&muteButton,&addToPlaylistButton,&loopButton,&forwardButton ,&backButton , &A_B_LOOP })
+    for (auto* btn : { &loadButton, &restart_PreviousButton , &stopButton ,&Pause_PlayButton,&EndButton,&muteButton,&addToPlaylistButton,&loopButton,&forwardButton ,&backButton , &A_B_LOOP , &addMarkerButton })
     {
         btn->addListener(this);
         addAndMakeVisible(btn);
@@ -72,12 +72,10 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
 
     loadImage = ImageCache::getFromMemory(BinaryData::arrow_png, BinaryData::arrow_pngSize);
     addToPlaylistImage = ImageCache::getFromMemory(BinaryData::add_png, BinaryData::add_pngSize);
-
     stopImage = ImageCache::getFromMemory(BinaryData::stop_png, BinaryData::stop_pngSize);
     restartPreviousImage = ImageCache::getFromMemory(BinaryData::rewindsign_png, BinaryData::rewindsign_pngSize);
     endImage = ImageCache::getFromMemory(BinaryData::fastforwardbutton_png, BinaryData::fastforwardbutton_pngSize);
     playImage = ImageCache::getFromMemory(BinaryData::playbuttonarrowhead_png, BinaryData::playbuttonarrowhead_pngSize);
-
     pauseImage = ImageCache::getFromMemory(BinaryData::pause_png, BinaryData::pause_pngSize);
     forwardImage = ImageCache::getFromMemory(BinaryData::forward_png, BinaryData::forward_pngSize);
     backImage = ImageCache::getFromMemory(BinaryData::backward_png, BinaryData::backward_pngSize);
@@ -87,7 +85,24 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     ALOOP_slider = ImageCache::getFromMemory(BinaryData::lettera_png, BinaryData::lettera_pngSize);
     BLOOP_slider = ImageCache::getFromMemory(BinaryData::letterb_png, BinaryData::letterb_pngSize);
 
+    addMarkerImage = ImageCache::getFromMemory(BinaryData::add_png, BinaryData::add_pngSize); // <-- استخدمنا نفس صورة الـ Add
+    //i have to change the image because it's not suitable for add marker  
 
+    addMarkerButton.setImages(false, true, true,
+        addMarkerImage, 1.0f, Colours::transparentBlack,
+        addMarkerImage, 1.0f, Colours::white,
+        addMarkerImage, 1.0f, Colours::transparentBlack);
+
+
+    // 3. ظبط الـ playlistBox (زي ما هي)
+    playlistBox.setModel(this); // <-- دي بتستخدم الكلاس الكبير
+    addAndMakeVisible(playlistBox);
+
+    // 4. ظبط الـ markerBox (ده الجديد)
+    markerModel = std::make_unique<MarkerListBoxModel>(playerAudio, markerBox, The_bar_pos);
+    markerBox.setModel(markerModel.get()); // <-- بنربط الليست بوكس بالمودل بتاعها
+    addAndMakeVisible(markerBox);
+    markerBox.setOutlineThickness(1);
 
 
 
@@ -223,133 +238,141 @@ PlayerGUI::~PlayerGUI()
 {
     saveLastState();
 }
+
+
 void PlayerGUI::resized()
 {
-    const int margin = 15;
-    const int spacing = 10;
-    const int w = getWidth();
-    const int h = getHeight();
-    const int innerW = w - margin * 2;
-    const int innerH = h - margin * 2;
+    // --- 1. ثوابت التصميم ---
+    const int margin = 10;
+    const int spacing = 8;
+    auto bounds = getLocalBounds().reduced(margin); // المساحة الكلية بعد الهوامش
 
-    // نسب للرأس / الفوتر / المنتصف
-    const float headerRatio = 0.12f;
-    const float footerRatio = 0.22f;
+    // --- 2. مناطق الواجهة الرئيسية (رأسيًا) ---
+    const int headerHeight = 60;
+    const int footerHeight = 150; // ارتفاع كافي للفوتر (سلايدر + أزرار)
 
-    const int headerH = (int)(innerH * headerRatio);
-    const int footerH = (int)(innerH * footerRatio);
-    const int middleH = innerH - headerH - footerH - spacing * 2;
+    // --- 3. الهيدر (معلومات الملف وأزرار Load/Add) ---
+    auto headerArea = bounds.removeFromTop(headerHeight);
 
-    // ---------- Header ----------
-    const int headerX = margin;
-    const int headerY = margin;
-    const int buttonW = 100;
-    const int headerInnerH = jmax(32, headerH - spacing);
+    const int headerButtonWidth = 80;
+    auto addPlaylistButtonArea = headerArea.removeFromRight(headerButtonWidth);
+    headerArea.removeFromRight(spacing);
+    auto loadButtonArea = headerArea.removeFromRight(headerButtonWidth);
 
-    infoLabel.setBounds(headerX, headerY, innerW - (buttonW * 2) - spacing * 2, headerInnerH);
-    infoLabel.setJustificationType(Justification::centredLeft);
-    loadButton.setBounds(infoLabel.getRight() + spacing, headerY, buttonW, headerInnerH);
-    addToPlaylistButton.setBounds(loadButton.getRight() + spacing, headerY, buttonW, headerInnerH);
+    loadButton.setBounds(loadButtonArea);
+    addToPlaylistButton.setBounds(addPlaylistButtonArea);
 
-    // ---------- Middle area (waveform + album + playlist) ----------
-    const int middleY = headerY + headerH + spacing;
-    const int waveformH = jmax(44, (int)(middleH * 0.22f));
-    waveformVisualiser.setBounds(margin, middleY, innerW, waveformH);
-    positionSlider.setBounds(margin, middleY, innerW, waveformH);
+    infoLabel.setBounds(headerArea.reduced(5, 0));
 
-    const int contentY = waveformVisualiser.getBottom() + spacing;
-    const int contentH = middleH - waveformH - spacing;
+    bounds.removeFromTop(spacing); // مسافة بين الهيدر والجزء الأوسط
 
-    // قسم الصورة و playlist: نسبة عرض صورة = 62%
-    const float albumRatio = 0.62f;
-    const int albumSectionW = (int)(innerW * albumRatio);
-    const int playlistW = innerW - albumSectionW - spacing;
+    // --- 4. الفوتر (سلايدر الوقت وكل أزرار التحكم) ---
+    auto footerArea = bounds.removeFromBottom(footerHeight);
 
-    const int albumMaxSize = jmin(contentH, albumSectionW - spacing * 2);
-    const int albumX = margin + (albumSectionW - albumMaxSize) / 2;
-    const int albumY = contentY + (contentH - albumMaxSize) / 2;
-    albumArtComponent.setBounds(albumX, albumY, albumMaxSize, albumMaxSize);
+    // أ. الصف الأول في الفوتر: سلايدر الوقت
+    auto timeSliderRow = footerArea.removeFromTop(30);
+    const int timeLabelWidth = 60;
+    poslabel.setBounds(timeSliderRow.removeFromLeft(timeLabelWidth));
+    endPos.setBounds(timeSliderRow.removeFromRight(timeLabelWidth));
+    The_bar_pos.setBounds(timeSliderRow.reduced(spacing, 0));
 
-    playlistBox.setBounds(margin + albumSectionW + spacing, contentY, playlistW, contentH);
-    playlistBox.setOutlineThickness(1);
+    footerArea.removeFromTop(spacing * 2); // مسافة أكبر بين سلايدر الوقت والأزرار
 
-    // ---------- Footer ----------
-    const int footerY = margin + headerH + middleH + spacing * 2;
-    const int timeLabelW = 60;
-    const int barH = 26;
-    const int barW = innerW - timeLabelW * 2 - spacing * 2;
+    // ب. الصف الثاني في الفوتر: الأزرار الرئيسية (Playback controls)
+    auto mainControlsRow = footerArea.removeFromTop(45);
 
-    poslabel.setBounds(margin, footerY + spacing, timeLabelW, barH);
-    The_bar_pos.setBounds(poslabel.getRight() + spacing, footerY + spacing, barW, barH);
-    endPos.setBounds(The_bar_pos.getRight() + spacing, footerY + spacing, timeLabelW, barH);
+    // --- تعديل هنا عشان نوسع مكان الزرار الجديد ---
+    // Left (30%) | Center (الباقي) | Right (33%)
+    auto leftControlsArea = mainControlsRow.removeFromLeft(mainControlsRow.getWidth() * 0.30f); // 30%
+    mainControlsRow.removeFromLeft(spacing);
 
-    // ======= منطقة الصف السفلي مع الأزرار =======
-    const int controlsY = footerY + spacing + barH + spacing;
-    const int availableControlsH = footerH - barH - spacing * 3;
-    const int controlsAreaTop = controlsY;
-    const int controlsAreaH = jmax(48, availableControlsH);
+    auto rightSlidersArea = mainControlsRow.removeFromRight(mainControlsRow.getWidth() * 0.33f); // 33%
+    mainControlsRow.removeFromRight(spacing);
 
-    // --- تصميم مطابق للصورة:
-    // على الشمال: شبكة دائرية 2 صف × 5 أعمدة (أزرار صغيرة دائرية)
-    const int leftGridCols = 5;
-    const int leftGridRows = 2;
-    const int leftGridW = jmin((int)(innerW * 0.45f), 520); // عرض منطقي للشبكة
-    const int leftGridX = margin;
-    const int leftGridY = controlsAreaTop;
+    auto centerPlaybackArea = mainControlsRow; // اللي باقي في النص
 
-    // نحسب حجم زر صغير بحيث يتسع 5 أعمدة مع spacing
-    const int smallBtnSize = jmin(48, (leftGridW - (leftGridCols - 1) * spacing) / leftGridCols);
-    const int leftGridActualW = smallBtnSize * leftGridCols + spacing * (leftGridCols - 1);
+    // --- تعديل هنا لتقسيم الأزرار الشمالية (5 أزرار) ---
+    const int numSmallButtons = 5; // (Mute, Loop, A-B, Stop, Add Marker)
+    const int smallButtonWidth = (leftControlsArea.getWidth() - (spacing * (numSmallButtons - 1))) / numSmallButtons;
+    const int smallButtonHeight = jmin(40, leftControlsArea.getHeight());
+    int x = leftControlsArea.getX();
+    int y = leftControlsArea.getY() + (leftControlsArea.getHeight() - smallButtonHeight) / 2; // توسيط رأسي
 
-    // الأزرار الصغيرة — صفين (ترتيب من الصورة: Back, Restart, Restart/Previous, Previous, (maybe) repeat icons ...)
-    // عدّل أسماء الأزرار هنا لتتطابق مع أزرارك الفعلية.
-    // Row 0
-    backButton.setBounds(leftGridX + 0 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    restart_PreviousButton.setBounds(leftGridX + 1 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    restart_PreviousButton.setBounds(leftGridX + 2 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    //rewindButton.setBounds(leftGridX + 3 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    //trackMenuButton.setBounds(leftGridX + 4 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    muteButton.setBounds(x, y, smallButtonWidth, smallButtonHeight);
+    x += smallButtonWidth + spacing;
+    loopButton.setBounds(x, y, smallButtonWidth, smallButtonHeight);
+    x += smallButtonWidth + spacing;
+    A_B_LOOP.setBounds(x, y, smallButtonWidth, smallButtonHeight);
+    x += smallButtonWidth + spacing;
+    stopButton.setBounds(x, y, smallButtonWidth, smallButtonHeight);
+    x += smallButtonWidth + spacing;
+    addMarkerButton.setBounds(x, y, smallButtonWidth, smallButtonHeight); // <-- الزرار الجديد اهو
 
-    // Row 1
-    loopButton.setBounds(leftGridX + 0 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    restart_PreviousButton.setBounds(leftGridX + 1 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    EndButton.setBounds(leftGridX + 2 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    muteButton.setBounds(leftGridX + 3 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
-    A_B_LOOP.setBounds(leftGridX + 4 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    // تقسيم الأزرار المركزية (Back, Restart/Prev, Play/Pause, End, Forward)
+    const int mainButtonHeight = centerPlaybackArea.getHeight();
+    const int playPauseButtonWidth = (int)(mainButtonHeight * 1.5f); // زرار التشغيل أكبر شوية
+    const int otherMainButtonWidth = (int)((centerPlaybackArea.getWidth() - playPauseButtonWidth - (spacing * 4)) / 4);
 
-    // --- الزر الكبير للـ Play/Pause في مركز الفوتر (أكبر وأمامي)
-    const int centerPlaySize = jmax(64, smallBtnSize + 20);
-    const int centerX = margin + (innerW / 2) - (centerPlaySize / 2);
-    const int centerY = controlsAreaTop - (centerPlaySize / 6); // يطلع شوية للأعلى ليظهر أكبر كما في الصورة
-    Pause_PlayButton.setBounds(centerX, centerY, centerPlaySize, centerPlaySize);
+    x = centerPlaybackArea.getX();
+    y = centerPlaybackArea.getY();
+    backButton.setBounds(x, y, otherMainButtonWidth, mainButtonHeight);
+    x += otherMainButtonWidth + spacing;
+    restart_PreviousButton.setBounds(x, y, otherMainButtonWidth, mainButtonHeight);
+    x += otherMainButtonWidth + spacing;
+    Pause_PlayButton.setBounds(x, y, playPauseButtonWidth, mainButtonHeight);
+    x += playPauseButtonWidth + spacing;
+    EndButton.setBounds(x, y, otherMainButtonWidth, mainButtonHeight);
+    x += otherMainButtonWidth + spacing;
+    forwardButton.setBounds(x, y, otherMainButtonWidth, mainButtonHeight);
 
-    // --- يمين المركز: أزرار تشغيل/تقديم/تأخير أصغر (دائماً على نفس خط الزر الكبير)
-    const int rightHelpersX = centerX + centerPlaySize + spacing * 2;
-    const int smallHelperSize = smallBtnSize;
-    EndButton.setBounds(rightHelpersX, centerY + (centerPlaySize - smallHelperSize) / 2, smallHelperSize, smallHelperSize);
-    forwardButton.setBounds(EndButton.getRight() + spacing, centerY + (centerPlaySize - smallHelperSize) / 2, smallHelperSize, smallHelperSize);
-    // skipButton.setBounds(forwardButton.getRight() + spacing, centerY + (centerPlaySize - smallHelperSize) / 2, smallHelperSize, smallHelperSize);
+    // تقسيم السلايدرز اليمين (Volume, Speed)
+    const int sliderLabelWidth = 55;
+    const int sliderHeight = (rightSlidersArea.getHeight() - spacing) / 2;
 
-     // --- أقصى اليمين: سلايدرات الصوت و السرعة كما قبل
-    const int slidersW = (int)(innerW * 0.25f);
-    const int slidersX = margin + innerW - slidersW;
-    const int labelW = 60;
-    const int sliderH = 22;
+    auto volumeSliderArea = rightSlidersArea.removeFromTop(sliderHeight);
+    volume_label.setBounds(volumeSliderArea.removeFromLeft(sliderLabelWidth));
+    volumeSlider.setBounds(volumeSliderArea.reduced(spacing, 0));
 
-    volume_label.setBounds(slidersX, controlsAreaTop + (centerPlaySize / 2) - sliderH / 2, labelW, sliderH);
-    volumeSlider.setBounds(volume_label.getRight() + spacing, controlsAreaTop + (centerPlaySize / 2) - sliderH / 2, slidersW - labelW - spacing, sliderH);
+    rightSlidersArea.removeFromTop(spacing);
 
-    speed_label.setBounds(slidersX, volume_label.getBottom() + spacing, labelW, sliderH);
-    speed_slider.setBounds(speed_label.getRight() + spacing, volume_label.getBottom() + spacing, slidersW - labelW - spacing, sliderH);
+    auto speedSliderArea = rightSlidersArea.removeFromTop(sliderHeight);
+    speed_label.setBounds(speedSliderArea.removeFromLeft(sliderLabelWidth));
+    speed_slider.setBounds(speedSliderArea.reduced(spacing, 0));
+
+
+    // --- 5. الجزء الأوسط (Waveform, Album Art, Playlist, Markers) ---
+    auto middleArea = bounds; // المساحة اللي فاضلة كلها
+
+    // أ. الصف العلوي في الجزء الأوسط: الـ Waveform Visualiser
+    const int waveformHeight = jmax(80, jmin(150, (int)(middleArea.getHeight() * 0.35f)));
+    waveformVisualiser.setBounds(middleArea.removeFromTop(waveformHeight));
+    positionSlider.setBounds(waveformVisualiser.getBounds());
+
+    middleArea.removeFromTop(spacing * 2); // مسافة أكبر تحت الويف فورم
+
+    // ب. الصف السفلي في الجزء الأوسط: صورة الألبوم وقائمة التشغيل/الماركرز
+    auto contentArea = middleArea;
+
+    // --- تعديل هنا عشان نضيف الـ markerBox ---
+    const int rightColumnWidth = jmax(150, jmin(250, (int)(contentArea.getWidth() * 0.3f))); // 30%
+
+    auto rightColumnArea = contentArea.removeFromRight(rightColumnWidth);
+    contentArea.removeFromRight(spacing);
+
+    // المنطقة اليمين هنقسمها نصين (60% للبلاي ليست، 40% للماركرز)
+    playlistBox.setBounds(rightColumnArea.removeFromTop(rightColumnArea.getHeight() * 0.6f));
+    rightColumnArea.removeFromTop(spacing); // مسافة بين الاتنين
+    markerBox.setBounds(rightColumnArea); // الماركر بوكس ياخد الباقي
+
+    // الصورة تأخذ المساحة اللي فاضلة
+    albumArtComponent.setBounds(contentArea);
 }
-
 
 //void PlayerGUI::resized()
 //{
 //    int margin = 10;
 //    int spacing = 8;
 //    int fullWidth = getWidth() - (2 * margin);
-//
 //    // --- 1. تعريف ارتفاعات الأقسام ---
 //    int headerHeight = 60;
 //    int footerHeight = 140; // فوتر كبير عشان يشيل كل الزراير
@@ -958,6 +981,12 @@ void PlayerGUI::playIndex(int row) {
             playerAudio.start();
             currentIndex = row;
 
+
+            playerAudio.clear_markers(); // <-- امسح الماركرز القديمة
+            markerBox.updateContent(); // بتاع الماركرز
+
+
+
             playlistBox.selectRow(currentIndex);
 
             updateLabel(fileToPlay);
@@ -1039,6 +1068,30 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
                 g.fillRect(left, (float)y, widthRect, (float)height);
             }
         }
+
+
+        auto& markers = playerAudio.get_markers();
+
+        for (double markerTime : markers)
+        {
+            // 1. نحول وقت الماركر (بالثواني) لنسبة (0.0 - 1.0)
+            double proportion = The_bar_pos.valueToProportionOfLength(markerTime);
+
+            // 2. نحول النسبة دي لمكان (X) على الشاشة
+            float marker_x_pos = (float)(x + (proportion * width));
+
+            // 3. نرسم خط عمودي رفيع مكان الماركر
+            // (هنرسمه كـ "مثلث" صغير عشان يبقى شكله أحسن)
+            juce::Path markerShape;
+            markerShape.startNewSubPath(marker_x_pos, (float)y); // رأس المثلث (فوق)
+            markerShape.lineTo(marker_x_pos - 4.0f, (float)(y + 8)); // نقطة شمال تحت
+            markerShape.lineTo(marker_x_pos + 4.0f, (float)(y + 8)); // نقطة يمين تحت
+            markerShape.closeSubPath(); // نقفل المثلث
+
+            g.fillPath(markerShape);
+        }
+
+
     }
 
 }
@@ -1270,6 +1323,14 @@ void PlayerGUI::buttonClicked(Button* button)
             newPos = 0.0;
         }
         playerAudio.setPosition(newPos);
+    }
+    else if (button == &addMarkerButton)
+    {
+        double currentPos = playerAudio.getPosition();
+        playerAudio.aad_marker(currentPos); // ضيف الماركر
+        markerBox.updateContent(); // حدث الليستة عشان الماركر الجديد يظهر
+        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1); // ينزل لأخر ماركر
+        The_bar_pos.repaint(); // <-- ضيف السطر ده
     }
 
 }
