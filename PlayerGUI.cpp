@@ -1,5 +1,13 @@
 #include <JuceHeader.h>
 #include "PlayerGUI.h"
+#include <taglib/fileref.h>
+#include <taglib/tag.h>
+#include <taglib/audioproperties.h>
+#include <taglib/mpegfile.h> // لملفات MP3
+#include <taglib/flacfile.h> // لملفات FLAC
+#include <taglib/id3v2tag.h>
+#include <taglib/attachedpictureframe.h>
+
 using namespace std;
 using namespace juce;
 void PlayerGUI::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
@@ -32,13 +40,17 @@ void PlayerGUI::releaseResources()
     playerAudio.releaseResources();
 }
 
-PlayerGUI::PlayerGUI()
+PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     : thumbnailCache(5),
     audioThumbnail(512, formatManager, thumbnailCache),
     fileLoaded(false),
     waveformVisualiser(1)
 {
     addAndMakeVisible(waveformVisualiser);
+
+    addAndMakeVisible(albumArtComponent);
+    albumArtComponent.setImagePlacement(juce::RectanglePlacement::centred);
+
     waveformVisualiser.setRepaintRate(60);
     waveformVisualiser.setBufferSize(512);
     waveformVisualiser.setSamplesPerBlock(256);
@@ -51,17 +63,21 @@ PlayerGUI::PlayerGUI()
         btn->addListener(this);
         addAndMakeVisible(btn);
     }
-    The_bar_pos.setLookAndFeel(this); // <--- السطر ده هو الحل
+    The_bar_pos.setLookAndFeel(this);
     loopOffImage = ImageCache::getFromMemory(BinaryData::loop_2_png, BinaryData::loop_2_pngSize);
     loopOnImage = ImageCache::getFromMemory(BinaryData::LLOOP_png, BinaryData::LLOOP_pngSize);
+
     muteOnImage = ImageCache::getFromMemory(BinaryData::mute_png, BinaryData::mute_pngSize);
     muteOffImage = ImageCache::getFromMemory(BinaryData::volume_png, BinaryData::volume_pngSize);
+
     loadImage = ImageCache::getFromMemory(BinaryData::arrow_png, BinaryData::arrow_pngSize);
     addToPlaylistImage = ImageCache::getFromMemory(BinaryData::add_png, BinaryData::add_pngSize);
+
     stopImage = ImageCache::getFromMemory(BinaryData::stop_png, BinaryData::stop_pngSize);
     restartPreviousImage = ImageCache::getFromMemory(BinaryData::rewindsign_png, BinaryData::rewindsign_pngSize);
     endImage = ImageCache::getFromMemory(BinaryData::fastforwardbutton_png, BinaryData::fastforwardbutton_pngSize);
     playImage = ImageCache::getFromMemory(BinaryData::playbuttonarrowhead_png, BinaryData::playbuttonarrowhead_pngSize);
+
     pauseImage = ImageCache::getFromMemory(BinaryData::pause_png, BinaryData::pause_pngSize);
     forwardImage = ImageCache::getFromMemory(BinaryData::forward_png, BinaryData::forward_pngSize);
     backImage = ImageCache::getFromMemory(BinaryData::backward_png, BinaryData::backward_pngSize);
@@ -190,7 +206,8 @@ PlayerGUI::PlayerGUI()
     startTimerHz(10);
 
     // session file location
-    sessionFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("player_session.xml");
+    sessionFile = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile(sessionFileName);
+
     // playlist box
     playlistBox.setModel(this);
     addAndMakeVisible(playlistBox);
@@ -206,174 +223,355 @@ PlayerGUI::~PlayerGUI()
 {
     saveLastState();
 }
-
-
 void PlayerGUI::resized()
 {
-    int margin = 10;
-    int spacing = 8;
-    int fullWidth = getWidth() - (2 * margin);
+    const int margin = 15;
+    const int spacing = 10;
+    const int w = getWidth();
+    const int h = getHeight();
+    const int innerW = w - margin * 2;
+    const int innerH = h - margin * 2;
 
-    // --- 1. تعريف ارتفاعات الأقسام ---
-    int headerHeight = 60;
-    int footerHeight = 140; // فوتر كبير عشان يشيل كل الزراير
-    int liveWaveformHeight = 120; // ارتفاع الـ Waveform اللي شغالة
+    // نسب للرأس / الفوتر / المنتصف
+    const float headerRatio = 0.12f;
+    const float footerRatio = 0.22f;
 
-    // --- 2. الهيدر (المعلومات وأزرار الملفات) ---
-    int headerY = margin;
-    int buttonWidth = 120;
+    const int headerH = (int)(innerH * headerRatio);
+    const int footerH = (int)(innerH * footerRatio);
+    const int middleH = innerH - headerH - footerH - spacing * 2;
 
-    infoLabel.setBounds(margin, headerY, fullWidth - (2 * buttonWidth) - (2 * spacing), headerHeight - (2 * margin));
-    infoLabel.setColour(Label::backgroundColourId, Colours::darkgrey.withAlpha(0.2f));
-    infoLabel.setColour(Label::textColourId, Colours::whitesmoke);
-    infoLabel.setJustificationType(Justification::centred);
+    // ---------- Header ----------
+    const int headerX = margin;
+    const int headerY = margin;
+    const int buttonW = 100;
+    const int headerInnerH = jmax(32, headerH - spacing);
 
-    loadButton.setBounds(infoLabel.getRight() + spacing, headerY, buttonWidth, headerHeight - (2 * margin));
-    addToPlaylistButton.setBounds(loadButton.getRight() + spacing, headerY, buttonWidth, headerHeight - (2 * margin));
+    infoLabel.setBounds(headerX, headerY, innerW - (buttonW * 2) - spacing * 2, headerInnerH);
+    infoLabel.setJustificationType(Justification::centredLeft);
+    loadButton.setBounds(infoLabel.getRight() + spacing, headerY, buttonW, headerInnerH);
+    addToPlaylistButton.setBounds(loadButton.getRight() + spacing, headerY, buttonW, headerInnerH);
 
-    // --- 4. الفوتر (كل أزرار التحكم والسلايدرز) ---
-    int footerY = getHeight() - footerHeight - margin;
-    int currentY_inFooter = footerY;
-    int sliderHeight = 20;
-    int buttonHeight = 35;
+    // ---------- Middle area (waveform + album + playlist) ----------
+    const int middleY = headerY + headerH + spacing;
+    const int waveformH = jmax(44, (int)(middleH * 0.22f));
+    waveformVisualiser.setBounds(margin, middleY, innerW, waveformH);
+    positionSlider.setBounds(margin, middleY, innerW, waveformH);
 
-    // الصف الأول في الفوتر: سلايدر الوقت
-    int timeLabelWidth = 60; // وسعنا الليبل شوية عشان "00:00"
-    int posSliderWidth = fullWidth - (2 * timeLabelWidth) - (2 * spacing);
+    const int contentY = waveformVisualiser.getBottom() + spacing;
+    const int contentH = middleH - waveformH - spacing;
 
-    poslabel.setBounds(margin, currentY_inFooter, timeLabelWidth, sliderHeight);
-    The_bar_pos.setBounds(poslabel.getRight() + spacing, currentY_inFooter, posSliderWidth, sliderHeight);
-    endPos.setBounds(The_bar_pos.getRight() + spacing, currentY_inFooter, timeLabelWidth, sliderHeight);
+    // قسم الصورة و playlist: نسبة عرض صورة = 62%
+    const float albumRatio = 0.62f;
+    const int albumSectionW = (int)(innerW * albumRatio);
+    const int playlistW = innerW - albumSectionW - spacing;
 
-    currentY_inFooter += sliderHeight + spacing; // انزل للصف التاني
+    const int albumMaxSize = jmin(contentH, albumSectionW - spacing * 2);
+    const int albumX = margin + (albumSectionW - albumMaxSize) / 2;
+    const int albumY = contentY + (contentH - albumMaxSize) / 2;
+    albumArtComponent.setBounds(albumX, albumY, albumMaxSize, albumMaxSize);
 
-    // الصف الثاني في الفوتر: الأزرار والسلايدرز
-    int footerControlsY = currentY_inFooter;
-
-    // الجزء اليمين (سلايدرز الصوت والسرعة)
-    int slidersAreaWidth = fullWidth * 0.3; // 30% للـ Sliders
-    int slidersAreaX = getWidth() - margin - slidersAreaWidth;
-    int labelWidth = 50;
-    int horizSliderWidth = slidersAreaWidth - labelWidth - spacing;
-
-    speed_label.setBounds(slidersAreaX, footerControlsY, labelWidth, sliderHeight);
-    speed_slider.setBounds(speed_label.getRight() + spacing, footerControlsY, horizSliderWidth, sliderHeight);
-
-    volume_label.setBounds(slidersAreaX, footerControlsY + sliderHeight + spacing, labelWidth, sliderHeight);
-    volumeSlider.setBounds(volume_label.getRight() + spacing, footerControlsY + sliderHeight + spacing, horizSliderWidth, sliderHeight);
-
-    // الجزء اللي في النص (أزرار التشغيل الرئيسية - 5 زراير)
-    int mainControlsWidth = fullWidth * 0.4; // 40% للأزرار الرئيسية
-    int mainControlsX = margin + (fullWidth - mainControlsWidth) / 2; // توسيط
-    int numMainButtons = 5;
-    int mainButtonWidth = (mainControlsWidth - (numMainButtons - 1) * spacing) / numMainButtons;
-
-    backButton.setBounds(mainControlsX, footerControlsY, mainButtonWidth, buttonHeight);
-    restart_PreviousButton.setBounds(backButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
-    Pause_PlayButton.setBounds(restart_PreviousButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight + 10); // زرار التشغيل أكبر
-    EndButton.setBounds(Pause_PlayButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
-    forwardButton.setBounds(EndButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
-
-    // الجزء الشمال (الأزرار المساعدة - 4 زراير)
-    int utilControlsWidth = fullWidth * 0.3; // الـ 30% الباقية
-    int numUtilButtons = 4;
-    int utilButtonWidth = (utilControlsWidth - (numUtilButtons - 1) * spacing) / numUtilButtons;
-
-    loopButton.setBounds(margin, footerControlsY, utilButtonWidth, buttonHeight);
-    muteButton.setBounds(loopButton.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
-    A_B_LOOP.setBounds(muteButton.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
-    stopButton.setBounds(A_B_LOOP.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
-
-
-    // --- 3. المحتوى (الويف فورم والبلاي ليست) ---
-    int middleY = headerY + (headerHeight - (2 * margin)) + spacing; // ابدأ بعد الهيدر
-    int middleTotalHeight = (footerY - spacing) - middleY; // كل المساحة المتاحة في النص
-
-    // الـ Waveform الحية (والسلايدر المخفي فوقها للضغط)
-    waveformVisualiser.setBounds(margin, middleY, fullWidth, liveWaveformHeight);
-    positionSlider.setBounds(margin, middleY, fullWidth, liveWaveformHeight); // فوقها بالظبط
-
-    // قائمة التشغيل (تاخد باقي المساحة)
-    int playlistY = waveformVisualiser.getBottom() + spacing;
-    int playlistHeight = middleTotalHeight - liveWaveformHeight - spacing;
-
-    playlistBox.setBounds(margin, playlistY, fullWidth, playlistHeight);
-    playlistBox.setColour(ListBox::backgroundColourId, Colours::darkslategrey.withAlpha(0.4f));
+    playlistBox.setBounds(margin + albumSectionW + spacing, contentY, playlistW, contentH);
     playlistBox.setOutlineThickness(1);
-    playlistBox.setColour(ListBox::outlineColourId, Colours::lightgrey.withAlpha(0.4f));
 
-    // أنا شلت اللوب بتاعة تلوين الأزرار اللي كانت في الآخر
-    // لأنك دلوقتي بتستخدم ImageButtons واللوب دي كانت لـ TextButtons
+    // ---------- Footer ----------
+    const int footerY = margin + headerH + middleH + spacing * 2;
+    const int timeLabelW = 60;
+    const int barH = 26;
+    const int barW = innerW - timeLabelW * 2 - spacing * 2;
+
+    poslabel.setBounds(margin, footerY + spacing, timeLabelW, barH);
+    The_bar_pos.setBounds(poslabel.getRight() + spacing, footerY + spacing, barW, barH);
+    endPos.setBounds(The_bar_pos.getRight() + spacing, footerY + spacing, timeLabelW, barH);
+
+    // ======= منطقة الصف السفلي مع الأزرار =======
+    const int controlsY = footerY + spacing + barH + spacing;
+    const int availableControlsH = footerH - barH - spacing * 3;
+    const int controlsAreaTop = controlsY;
+    const int controlsAreaH = jmax(48, availableControlsH);
+
+    // --- تصميم مطابق للصورة:
+    // على الشمال: شبكة دائرية 2 صف × 5 أعمدة (أزرار صغيرة دائرية)
+    const int leftGridCols = 5;
+    const int leftGridRows = 2;
+    const int leftGridW = jmin((int)(innerW * 0.45f), 520); // عرض منطقي للشبكة
+    const int leftGridX = margin;
+    const int leftGridY = controlsAreaTop;
+
+    // نحسب حجم زر صغير بحيث يتسع 5 أعمدة مع spacing
+    const int smallBtnSize = jmin(48, (leftGridW - (leftGridCols - 1) * spacing) / leftGridCols);
+    const int leftGridActualW = smallBtnSize * leftGridCols + spacing * (leftGridCols - 1);
+
+    // الأزرار الصغيرة — صفين (ترتيب من الصورة: Back, Restart, Restart/Previous, Previous, (maybe) repeat icons ...)
+    // عدّل أسماء الأزرار هنا لتتطابق مع أزرارك الفعلية.
+    // Row 0
+    backButton.setBounds(leftGridX + 0 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    restart_PreviousButton.setBounds(leftGridX + 1 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    restart_PreviousButton.setBounds(leftGridX + 2 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    //rewindButton.setBounds(leftGridX + 3 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    //trackMenuButton.setBounds(leftGridX + 4 * (smallBtnSize + spacing), leftGridY + 0 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+
+    // Row 1
+    loopButton.setBounds(leftGridX + 0 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    restart_PreviousButton.setBounds(leftGridX + 1 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    EndButton.setBounds(leftGridX + 2 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    muteButton.setBounds(leftGridX + 3 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+    A_B_LOOP.setBounds(leftGridX + 4 * (smallBtnSize + spacing), leftGridY + 1 * (smallBtnSize + spacing), smallBtnSize, smallBtnSize);
+
+    // --- الزر الكبير للـ Play/Pause في مركز الفوتر (أكبر وأمامي)
+    const int centerPlaySize = jmax(64, smallBtnSize + 20);
+    const int centerX = margin + (innerW / 2) - (centerPlaySize / 2);
+    const int centerY = controlsAreaTop - (centerPlaySize / 6); // يطلع شوية للأعلى ليظهر أكبر كما في الصورة
+    Pause_PlayButton.setBounds(centerX, centerY, centerPlaySize, centerPlaySize);
+
+    // --- يمين المركز: أزرار تشغيل/تقديم/تأخير أصغر (دائماً على نفس خط الزر الكبير)
+    const int rightHelpersX = centerX + centerPlaySize + spacing * 2;
+    const int smallHelperSize = smallBtnSize;
+    EndButton.setBounds(rightHelpersX, centerY + (centerPlaySize - smallHelperSize) / 2, smallHelperSize, smallHelperSize);
+    forwardButton.setBounds(EndButton.getRight() + spacing, centerY + (centerPlaySize - smallHelperSize) / 2, smallHelperSize, smallHelperSize);
+    // skipButton.setBounds(forwardButton.getRight() + spacing, centerY + (centerPlaySize - smallHelperSize) / 2, smallHelperSize, smallHelperSize);
+
+     // --- أقصى اليمين: سلايدرات الصوت و السرعة كما قبل
+    const int slidersW = (int)(innerW * 0.25f);
+    const int slidersX = margin + innerW - slidersW;
+    const int labelW = 60;
+    const int sliderH = 22;
+
+    volume_label.setBounds(slidersX, controlsAreaTop + (centerPlaySize / 2) - sliderH / 2, labelW, sliderH);
+    volumeSlider.setBounds(volume_label.getRight() + spacing, controlsAreaTop + (centerPlaySize / 2) - sliderH / 2, slidersW - labelW - spacing, sliderH);
+
+    speed_label.setBounds(slidersX, volume_label.getBottom() + spacing, labelW, sliderH);
+    speed_slider.setBounds(speed_label.getRight() + spacing, volume_label.getBottom() + spacing, slidersW - labelW - spacing, sliderH);
 }
 
 
+//void PlayerGUI::resized()
+//{
+//    int margin = 10;
+//    int spacing = 8;
+//    int fullWidth = getWidth() - (2 * margin);
+//
+//    // --- 1. تعريف ارتفاعات الأقسام ---
+//    int headerHeight = 60;
+//    int footerHeight = 140; // فوتر كبير عشان يشيل كل الزراير
+//    int liveWaveformHeight = 120; // ارتفاع الـ Waveform اللي شغالة
+//
+//    // --- 2. الهيدر (المعلومات وأزرار الملفات) ---
+//    int headerY = margin;
+//    int buttonWidth = 120;
+//
+//    infoLabel.setBounds(margin, headerY, fullWidth - (2 * buttonWidth) - (2 * spacing), headerHeight - (2 * margin));
+//    infoLabel.setColour(Label::backgroundColourId, Colours::darkgrey.withAlpha(0.2f));
+//    infoLabel.setColour(Label::textColourId, Colours::whitesmoke);
+//    infoLabel.setJustificationType(Justification::centred);
+//
+//    loadButton.setBounds(infoLabel.getRight() + spacing, headerY, buttonWidth, headerHeight - (2 * margin));
+//    addToPlaylistButton.setBounds(loadButton.getRight() + spacing, headerY, buttonWidth, headerHeight - (2 * margin));
+//
+//    // --- 4. الفوتر (كل أزرار التحكم والسلايدرز) ---
+//    int footerY = getHeight() - footerHeight - margin;
+//    int currentY_inFooter = footerY;
+//    int sliderHeight = 20;
+//    int buttonHeight = 35;
+//
+//    // الصف الأول في الفوتر: سلايدر الوقت
+//    int timeLabelWidth = 60; // وسعنا الليبل شوية عشان "00:00"
+//    int posSliderWidth = fullWidth - (2 * timeLabelWidth) - (2 * spacing);
+//
+//    poslabel.setBounds(margin, currentY_inFooter, timeLabelWidth, sliderHeight);
+//    The_bar_pos.setBounds(poslabel.getRight() + spacing, currentY_inFooter, posSliderWidth, sliderHeight);
+//    endPos.setBounds(The_bar_pos.getRight() + spacing, currentY_inFooter, timeLabelWidth, sliderHeight);
+//
+//    currentY_inFooter += sliderHeight + spacing; // انزل للصف التاني
+//
+//    // الصف الثاني في الفوتر: الأزرار والسلايدرز
+//    int footerControlsY = currentY_inFooter;
+//
+//    // الجزء اليمين (سلايدرز الصوت والسرعة)
+//    int slidersAreaWidth = fullWidth * 0.3; // 30% للـ Sliders
+//    int slidersAreaX = getWidth() - margin - slidersAreaWidth;
+//    int labelWidth = 50;
+//    int horizSliderWidth = slidersAreaWidth - labelWidth - spacing;
+//
+//    speed_label.setBounds(slidersAreaX, footerControlsY, labelWidth, sliderHeight);
+//    speed_slider.setBounds(speed_label.getRight() + spacing, footerControlsY, horizSliderWidth, sliderHeight);
+//
+//    volume_label.setBounds(slidersAreaX, footerControlsY + sliderHeight + spacing, labelWidth, sliderHeight);
+//    volumeSlider.setBounds(volume_label.getRight() + spacing, footerControlsY + sliderHeight + spacing, horizSliderWidth, sliderHeight);
+//
+//    // الجزء اللي في النص (أزرار التشغيل الرئيسية - 5 زراير)
+//    int mainControlsWidth = fullWidth * 0.4; // 40% للأزرار الرئيسية
+//    int mainControlsX = margin + (fullWidth - mainControlsWidth) / 2; // توسيط
+//    int numMainButtons = 5;
+//    int mainButtonWidth = (mainControlsWidth - (numMainButtons - 1) * spacing) / numMainButtons;
+//
+//    backButton.setBounds(mainControlsX, footerControlsY, mainButtonWidth, buttonHeight);
+//    restart_PreviousButton.setBounds(backButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
+//    Pause_PlayButton.setBounds(restart_PreviousButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight + 10); // زرار التشغيل أكبر
+//    EndButton.setBounds(Pause_PlayButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
+//    forwardButton.setBounds(EndButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
+//
+//    // الجزء الشمال (الأزرار المساعدة - 4 زراير)
+//    int utilControlsWidth = fullWidth * 0.3; // الـ 30% الباقية
+//    int numUtilButtons = 4;
+//    int utilButtonWidth = (utilControlsWidth - (numUtilButtons - 1) * spacing) / numUtilButtons;
+//
+//    loopButton.setBounds(margin, footerControlsY, utilButtonWidth, buttonHeight);
+//    muteButton.setBounds(loopButton.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
+//    A_B_LOOP.setBounds(muteButton.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
+//    stopButton.setBounds(A_B_LOOP.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
+//
+//
+//    // --- 3. المحتوى (الويف فورم والبلاي ليست) ---
+//    int middleY = headerY + (headerHeight - (2 * margin)) + spacing; // ابدأ بعد الهيدر
+//    int middleTotalHeight = (footerY - spacing) - middleY; // كل المساحة المتاحة في النص
+//
+//    // الـ Waveform الحية (والسلايدر المخفي فوقها للضغط)
+//    waveformVisualiser.setBounds(margin, middleY, fullWidth, liveWaveformHeight);
+//    positionSlider.setBounds(margin, middleY, fullWidth, liveWaveformHeight); // فوقها بالظبط
+//
+//    // قائمة التشغيل (تاخد باقي المساحة)
+//    int playlistY = waveformVisualiser.getBottom() + spacing;
+//    int playlistHeight = middleTotalHeight - liveWaveformHeight - spacing;
+//
+//    playlistBox.setBounds(margin, playlistY, fullWidth, playlistHeight);
+//    playlistBox.setColour(ListBox::backgroundColourId, Colours::darkslategrey.withAlpha(0.4f));
+//    playlistBox.setOutlineThickness(1);
+//    playlistBox.setColour(ListBox::outlineColourId, Colours::lightgrey.withAlpha(0.4f));
+//
+//
+//    // أنا شلت اللوب بتاعة تلوين الأزرار اللي كانت في الآخر
+//    // لأنك دلوقتي بتستخدم ImageButtons واللوب دي كانت لـ TextButtons
+//}
 
 
 
-// تحديث الليبل من الميتاداتا
-void PlayerGUI::updateLabel(const File& file) {
-    std::unique_ptr<AudioFormatReader> reader(formatManager.createReaderFor(file));
-
-    if (reader != nullptr) {
-        auto metadata = reader->metadataValues;
-        if (metadata.size() > 0) {
-
-            String title = metadata.getValue("title", metadata.getValue("TITLE", "unKnown"));
-            // السطر ده معمول عشان لو الميتاداتا جواها العنوان مكتوب بكابيتال او سمول 
-            // ممكن اعملى زيه الى تحت نفس الفكره
-            /*string title = metadata.getValue("title","");
-            if (title.empty()) {
-                title = metadata.getValue("TITLE","unKnown");
-            }*/
-            String artist = metadata.getValue("artist", metadata.getValue("ARTIST", "unknown"));
-
-            double duration = reader->lengthInSamples / reader->sampleRate;
-            int mins = static_cast<int>(duration / 60);
-            int secs = static_cast<int>(round(duration)) % 60;
-
-            displayText = "Title: " + title +
-                "\nArtist: " + artist +
-                "\nDuration: " + String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
+Image loadCoverArt(const juce::File& file)
+{
+    TagLib::FileName path(file.getFullPathName().toWideCharPointer());
 
 
+    String ext = file.getFileExtension().toLowerCase();
+    TagLib::ByteVector imageBytes;
+    Image art;
+
+    if (ext == ".mp3")
+    {
+        TagLib::MPEG::File mp3File(path);
+        if (mp3File.isValid() && mp3File.ID3v2Tag())
+        {
+            TagLib::ID3v2::FrameList apicFrames = mp3File.ID3v2Tag()->frameList("APIC");
+            if (!apicFrames.isEmpty())
+            {
+                auto picFrame = static_cast<TagLib::ID3v2::AttachedPictureFrame*>(apicFrames.front());
+                imageBytes = picFrame->picture();
+            }
         }
-        else {
-            displayText = "File: " + file.getFileName();
+    }
+
+
+    if (!imageBytes.isEmpty())
+    {
+        art = ImageFileFormat::loadFrom(imageBytes.data(), (size_t)imageBytes.size());
+    }
+
+    if (art.isValid())
+    {
+        return art;
+    }
+
+    // هبحث في الفولدر
+    File audioFileDir = file.getParentDirectory();
+
+    StringArray artFilenames;
+    artFilenames.add("folder.jpg");
+    artFilenames.add("cover.jpg");
+    artFilenames.add("folder.png");
+    artFilenames.add("cover.png");
+    artFilenames.add("album.jpg");
+    artFilenames.add("album.png");
+    artFilenames.add(file.getFileNameWithoutExtension() + ".jpg");
+    artFilenames.add(file.getFileNameWithoutExtension() + ".png");
+
+    for (const auto& filename : artFilenames)
+    {
+        File artFile = audioFileDir.getChildFile(filename);
+        if (artFile.existsAsFile())
+        {
+            art = ImageFileFormat::loadFrom(artFile);
+            if (art.isValid())
+            {
+                return art;
+            }
         }
-
-        infoLabel.setText(displayText, dontSendNotification);
-        // مترسلش نوتفيكشن ده معمول عشان مش عاوز اعرف اليوزر ان فيه تغير حصل فى التيكست بتاع الليبل
-
-        // Load waveform for the file
-        audioThumbnail.clear();
-        audioThumbnail.setSource(new FileInputSource(file));
-        fileLoaded = true;
-
-        //delete previous waveform data
-        waveformVisualiser.clear();
-    }
-    else {
-        infoLabel.setText("Failed to load audio file.", dontSendNotification);
-        fileLoaded = false;
     }
 
-
-
+    // لو الخطتين فشلوا، رجع صورة فاضية
+    return Image();
 }
 
+void PlayerGUI::updateLabel(const File& file)
+{
+    TagLib::FileRef f(file.getFullPathName().toWideCharPointer());
+
+    if (!f.isNull() && f.tag() != nullptr)
+    {
+        TagLib::Tag* tag = f.tag();
+        String title = tag->title().isEmpty() ? "Unknown" : tag->title().toCString(true);
+        String artist = tag->artist().isEmpty() ? "Unknown" : tag->artist().toCString(true);
+        String album = tag->album().isEmpty() ? "Unknown" : tag->album().toCString(true);
+        String year = (tag->year() != 0) ? String(tag->year()) : "Unknown";
+
+        double duration = 0.0;
+        if (f.audioProperties() != nullptr)
+            duration = f.audioProperties()->length();
+
+        int mins = static_cast<int>(duration / 60);
+        int secs = static_cast<int>(std::round(duration)) % 60;
+
+        displayText = "Title: " + title +
+            "\nArtist: " + artist +
+            "\nAlbum: " + album +
+            "\nYear: " + year +
+            "\nDuration: " + String(mins).paddedLeft('0', 2) + ":" + String(secs).paddedLeft('0', 2);
+    }
+    else
+    {
+        displayText = "File: " + file.getFileName() + "\n(No metadata found)";
+        DBG("Failed to read text metadata (TagLib::FileRef failed).");
+    }
+
+    infoLabel.setText(displayText, dontSendNotification);
+
+    currentAlbumArt = loadCoverArt(file);
+
+    if (currentAlbumArt.isValid())
+    {
+        albumArtComponent.setImage(currentAlbumArt);
+    }
+    else
+    {
+        albumArtComponent.setImage(juce::Image());
+    }
+
+
+    audioThumbnail.clear();
+    audioThumbnail.setSource(new FileInputSource(file));
+    fileLoaded = true;
+    waveformVisualiser.clear();
+}
 
 // save last session state
 void PlayerGUI::saveLastState()
 {
 
-
-
     File currentFile = playerAudio.getCurrentFile();
     appState.setProperty("lastFile", currentFile.getFullPathName(), nullptr);
+
     appState.setProperty("lastPosition", playerAudio.getPosition(), nullptr);
+
     appState.setProperty("lastVolume", volumeSlider.getValue(), nullptr);
     appState.setProperty("lastPositionSlider", The_bar_pos.getValue(), nullptr);
-    appState.setProperty("currentIndex", currentIndex, nullptr); 
+    appState.setProperty("currentIndex", currentIndex, nullptr);
 
 
 
@@ -651,7 +849,6 @@ void PlayerGUI::listBoxItemClicked(int row, const MouseEvent& e)
                     if (row < 0 || row >= playlist.size())
                         return;
 
-
                     String currentFilePath;
                     File curFile = playerAudio.getCurrentFile();
                     if (curFile.existsAsFile())
@@ -777,7 +974,6 @@ void PlayerGUI::playIndex(int row) {
 }
 
 
-
 void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int height, float sliderPos, float minSliderPos, float maxSliderPos, Slider::SliderStyle style, Slider& slider)
 {
     LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
@@ -888,6 +1084,7 @@ void PlayerGUI::buttonClicked(Button* button)
             });
 
     }
+
     else if (button == &addToPlaylistButton) {
         FileChooser chooser("Select audio files...",
             File{},
@@ -898,7 +1095,7 @@ void PlayerGUI::buttonClicked(Button* button)
             File{},
             "*.wav;*.mp3");
         fileChooser->launchAsync(
-            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles,
+            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::canSelectMultipleItems, // <--- هو ده السطر الجديد
             [this](const FileChooser& fc)
             {
                 auto results = fc.getResults();
@@ -908,9 +1105,9 @@ void PlayerGUI::buttonClicked(Button* button)
                         playlistBox.updateContent();
                         if (currentIndex == -1 && playlist.size() > 0) {
                             playIndex(0);
-                            saveLastState();
                         }
                     }
+                    saveLastState();
 
                 }
 
@@ -1006,18 +1203,29 @@ void PlayerGUI::buttonClicked(Button* button)
         }
         Pause_PlayButton.repaint();
     }//⏸️⏯️
-    else if (button == &EndButton) {
-        playerAudio.setPosition(playerAudio.getLength());
+    else if (button == &EndButton)
+    {
+        if (playlist.size() > 0 && currentIndex >= 0)
+        {
+            int nextIndex = currentIndex + 1;
+            if (nextIndex >= playlist.size()) {
+                nextIndex = 0;
+            }
 
-        if (playlist.size() == 0 || currentIndex == -1) {
-
-            Pause_PlayButton.setImages(false, true, true,
-                playImage, 1.0f, Colours::transparentBlack,
-                playImage, 1.0f, Colours::white,
-                playImage, 1.0f, Colours::transparentBlack);
+            playIndex(nextIndex);
+            if (!playerAudio.isPlaying())
+            {
+                playerAudio.stop();
+                Pause_PlayButton.setImages(false, true, true,
+                    playImage, 1.0f, Colours::transparentBlack,
+                    playImage, 1.0f, Colours::white,
+                    playImage, 1.0f, Colours::transparentBlack);
+            }
         }
-
-        Pause_PlayButton.repaint();
+        else
+        {// عشان لو مفيش بلاي ليست
+            playerAudio.setPosition(playerAudio.getLength());
+        }
     }
     else if (button == &A_B_LOOP)
     {

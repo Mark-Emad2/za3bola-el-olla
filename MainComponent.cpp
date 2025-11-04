@@ -2,7 +2,10 @@
 using namespace juce;
 using namespace std;
 //==============================================================================
-MainComponent::MainComponent() {
+MainComponent::MainComponent()
+    : player1("player1_session.xml"),
+    player2("player2_session.xml")
+{
 
     addAndMakeVisible(player1);
     addAndMakeVisible(player2);
@@ -34,17 +37,17 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
         // clear buffer first
         bufferToFill.clearActiveBufferRegion();
 
-        // make temp buffer
+        // create a temporary buffer just for player2
         AudioBuffer<float> tempBuffer(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
         AudioSourceChannelInfo tempInfo(&tempBuffer, 0, bufferToFill.numSamples);
 
-		// player 1 directly to output
+        // get player1 audio directly to output
         player1.getNextAudioBlock(bufferToFill);
 
-		// player 2 to temp buffer
+        // get player2 audio to temporary buffer
         player2.getNextAudioBlock(tempInfo);
 
-		// mix two palyers together
+        // mixing player2 into output with reduced volume
         for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
         {
             auto* output = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
@@ -71,18 +74,18 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds();
 
-    // but mixeer on top
+    // Simple mixer toggle at top
     auto mixerArea = area.removeFromTop(40);
     mixerToggleButton.setBounds(mixerArea.reduced(10, 5));
 
-    // split players
+    // Players below - equal split
     auto player1Area = area.removeFromLeft(getWidth() / 2);
     auto player2Area = area;
 
     player1.setBounds(player1Area.reduced(10));
     player2.setBounds(player2Area.reduced(10));
 }
-void MainComponent::button_clicked(Button* button) {
+void MainComponent::buttonClicked(Button* button) {
     if (button == &mixerToggleButton) {
         mixer_enabled = mixerToggleButton.getToggleState();
 
@@ -96,6 +99,3 @@ void MainComponent::button_clicked(Button* button) {
         }
     }
 }
-
-
-

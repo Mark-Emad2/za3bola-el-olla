@@ -16,7 +16,7 @@ class PlayerGUI : public Component,
     , public ChangeListener
 {
 public:
-    PlayerGUI();
+    PlayerGUI(const juce::String& sessionFileName);
     ~PlayerGUI() override;
 
     void updateLabel(const File& file);
@@ -52,6 +52,10 @@ public:
 
 private:
     PlayerAudio playerAudio;
+
+    // for album image
+    juce::ImageComponent albumArtComponent;
+    juce::Image currentAlbumArt;
 
     // Waveform components
     AudioFormatManager formatManager;
