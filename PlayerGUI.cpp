@@ -42,19 +42,19 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     //audioThumbnail wave form reginerator
     audioThumbnail(512, formatManager, thumbnailCache),
     fileLoaded(false),
-    waveformVisualiser(1)// 1 chanel waves don't overlap(two waves)
+    wave_form_visualiser(1)// 1 chanel waves don't overlap(two waves)
 {
-    addAndMakeVisible(waveformVisualiser);
+    addAndMakeVisible(wave_form_visualiser);
 
     addAndMakeVisible(albumArtComponent);
     albumArtComponent.setImagePlacement(juce::RectanglePlacement::centred);
 
-    waveformVisualiser.setRepaintRate(60);
-    waveformVisualiser.setBufferSize(512);//controles the size of the wave
+    wave_form_visualiser.setRepaintRate(60);
+    wave_form_visualiser.setBufferSize(512);//controles the size of the wave
 
     // (اللون الأول هو الخلفية، والثاني هو الموجة)
 // (اللون الأول هو الخلفية، والثاني هو الموجة)
-    waveformVisualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
+    wave_form_visualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
     //waveformVisualiser.setColours(juce::Colour(0xFF2E1C40), juce::Colours::cyan);
     // Add buttons
     formatManager.registerBasicFormats();
@@ -353,9 +353,9 @@ void PlayerGUI::resized()
     auto middleArea = bounds;
 
     const int waveformHeight = (int)juce::jlimit(minWaveformHeight, 200.0f, middleArea.getHeight() * waveformHeightPercent);
-    waveformVisualiser.setBounds(middleArea.removeFromTop(waveformHeight));
+    wave_form_visualiser.setBounds(middleArea.removeFromTop(waveformHeight));
 
-    positionSlider.setBounds(waveformVisualiser.getBounds());
+    positionSlider.setBounds(wave_form_visualiser.getBounds());
 
     middleArea.removeFromTop(spacing);
 
@@ -584,7 +584,7 @@ void PlayerGUI::updateLabel(const File& file)
     audioThumbnail.clear();
     audioThumbnail.setSource(new FileInputSource(file));
     fileLoaded = true;
-    waveformVisualiser.clear();
+    wave_form_visualiser.clear();
 }
 
 // save last session state

@@ -87,7 +87,7 @@ private:
     bool fileLoaded;
 
     //waveform visualiser
-    AudioVisualiserComponent waveformVisualiser;
+    AudioVisualiserComponent wave_form_visualiser;
     // GUI elements
     ImageButton loadButton;
     ImageButton restart_PreviousButton;
