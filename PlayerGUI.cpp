@@ -87,8 +87,6 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     BLOOP_slider = ImageCache::getFromMemory(BinaryData::letterb_png, BinaryData::letterb_pngSize);
 
     addMarkerImage = ImageCache::getFromMemory(BinaryData::mark_png, BinaryData::mark_pngSize);
-    backgroundImage = ImageCache::getFromMemory(BinaryData::_3dnetworkcommunicationsdatatechnologybackgroundwithflowingparticles_1_png, BinaryData::_3dnetworkcommunicationsdatatechnologybackgroundwithflowingparticles_1_pngSize);
-    //i have to change the image because it's not suitable for add marker  
 
     addMarkerButton.setImages(false, true, true,
         addMarkerImage, 1.0f, Colours::transparentBlack,
@@ -1001,13 +999,15 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
 {
     if (&slider == &The_bar_pos)
     {
-        float trackHeight = 6.0f;
-        float trackY = (float)y + ((float)height - trackHeight) * 0.5f; 
+        // --- 1. ارسم الـ Track (الخلفية) ---
+        float trackHeight = 6.0f; // سمك الخط
+        float trackY = (float)y + ((float)height - trackHeight) * 0.5f; // توسطن الخط
         juce::Rectangle<float> trackBounds((float)x, trackY, (float)width, trackHeight);
 
         g.setColour(juce::Colours::darkgrey);
         g.fillRoundedRectangle(trackBounds, trackHeight * 0.5f);
 
+        // --- 2. ارسم الجزء المليان (Filled) ---
         float filledWidth = sliderPos - (float)x;
         if (filledWidth > 0)
         {
@@ -1016,12 +1016,15 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             g.fillRoundedRectangle(filledBounds, trackHeight * 0.5f);
         }
 
+        // --- (اتنقلت فوق) دالة التحويل من "وقت" لـ "بكسل" ---
         auto valueToPixel = [&](double value) -> float
             {
                 double proportion = The_bar_pos.valueToProportionOfLength(value);
                 return juce::jmap((float)proportion, 0.0f, 1.0f, (float)x, (float)(x + width));
             };
+        // -----------------------------------------------
 
+        // --- 3. كود الـ A-B Loop (زي ما هو) ---
         float a_x_pos = 0.0f;
         float b_x_pos = 0.0f;
         bool hasA = false;
@@ -1061,23 +1064,29 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             }
         }
 
+        // *********** (ده الكود الجديد) ***********
+        // --- 4. ارسم الماركرز (كنقطة تحت السلايدر) ---
         g.setColour(juce::Colours::cyan.withAlpha(0.7f)); // تغير لونmark
 
-        float dotDiameter = 7.0f; 
-        float dotMargin = 7.0f;   
+        float dotDiameter = 7.0f; // <--- حجم النقطة
+        float dotMargin = 7.0f;   // <--- المسافة تحت الخط
 
+        // نحسب الـ Y بتاع النقطة (تحت الخط + المسافة)
         float dotY = trackY + trackHeight + dotMargin;
 
         for (const auto& markerTime : playerAudio.get_markers())
         {
             float markerX = valueToPixel(markerTime);
 
-            g.fillEllipse(markerX - (dotDiameter / 2.0f), 
-                dotY,                         
-                dotDiameter,                 
-                dotDiameter);              
+            // نرسم دايرة (نقطة)
+            g.fillEllipse(markerX - (dotDiameter / 2.0f), // X (متوسطن)
+                dotY,                         // Y (تحت الخط)
+                dotDiameter,                  // W
+                dotDiameter);                 // H
         }
+        // ------------------------------------------------
 
+        // --- 5. ارسم الـ Thumb (المقبض اللي بيتحرك) ---
         float thumbWidth = 16.0f;
         float thumbHeight = 16.0f;
         float thumbX = sliderPos - (thumbWidth * 0.5f);
@@ -1091,6 +1100,7 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
     }
     else
     {
+        // لو السلايدر ده مش The_bar_pos
         LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
     }
 }
@@ -1275,7 +1285,7 @@ void PlayerGUI::buttonClicked(Button* button)
             }
         }
         else
-        {
+        {// عشان لو مفيش بلاي ليست
             playerAudio.setPosition(playerAudio.getLength());
         }
     }
@@ -1326,10 +1336,10 @@ void PlayerGUI::buttonClicked(Button* button)
     else if (button == &addMarkerButton)
     {
         double currentPos = playerAudio.getPosition();
-        playerAudio.aad_marker(currentPos); 
-        markerBox.updateContent(); 
-        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1); 
-        The_bar_pos.repaint(); 
+        playerAudio.aad_marker(currentPos); // ضيف الماركر
+        markerBox.updateContent(); // حدث الليستة عشان الماركر الجديد يظهر
+        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1); // ينزل لأخر ماركر
+        The_bar_pos.repaint(); // <-- ضيف السطر ده
     }
 
 }
@@ -1377,17 +1387,18 @@ void MarkerListBoxModel::listBoxItemClicked(int row, const juce::MouseEvent& e)
                 {
                     playerAudio.jump_to_marker(row);
                 }
-                else if (result == 2) 
+                else if (result == 2)
                 {
                     playerAudio.remove_marker(row);
                     ownerBox.updateContent();
                     positionBar.repaint();
                 }
+               
             });
     }
     else
     {
-        playerAudio.jump_to_marker(row); // اعمل jump علطول
+        playerAudio.jump_to_marker(row); 
     }
 }
 
