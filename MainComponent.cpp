@@ -67,35 +67,35 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
 void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     if (mixer_enabled) {
-        if (mixer_enabled) {
-            // clear the buffer
-            bufferToFill.clearActiveBufferRegion();
+        // clear the buffer
+        bufferToFill.clearActiveBufferRegion();
 
-            // make temp buffers for palyers
-            AudioBuffer<float> tempBuffer1(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
-            AudioBuffer<float> tempBuffer2(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
+        // make temp buffers for palyers
+        AudioBuffer<float> tempBuffer1(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);//buffer to fill main out put provider .buffer acual object
+        AudioBuffer<float> tempBuffer2(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
 
-            AudioSourceChannelInfo tempInfo1(&tempBuffer1, 0, bufferToFill.numSamples);
-            AudioSourceChannelInfo tempInfo2(&tempBuffer2, 0, bufferToFill.numSamples);
+        AudioSourceChannelInfo tempInfo1(&tempBuffer1, 0, bufferToFill.numSamples);//0 start index 
+        AudioSourceChannelInfo tempInfo2(&tempBuffer2, 0, bufferToFill.numSamples);
 
-            // get audio from players
-            player1.getNextAudioBlock(tempInfo1);
-            player2.getNextAudioBlock(tempInfo2);
+        // get audio from players
+        player1.getNextAudioBlock(tempInfo1);
+        player2.getNextAudioBlock(tempInfo2);
 
-            // audio mixing
-            for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
+        // audio mixing
+        for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
+        {
+
+
+            for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
             {
+                // mix with individual levels
+               //Waveform Superposition
+                float p1_sample = tempBuffer1.getSample(channel, sample);
+                float p2_sample = tempBuffer2.getSample(channel, sample);
+                float result = (p1_sample * player1_mix_level) +
+                    (p2_sample * player2_mix_level);
+                bufferToFill.buffer->setSample(channel, sample, result);
 
-
-                for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
-                {
-                    float p1_sample = tempBuffer1.getSample(channel, sample);  // Function call + copy
-                    float p2_sample = tempBuffer2.getSample(channel, sample);  // Function call + copy
-                    float result = (p1_sample * player1_mix_level) +
-                        (p2_sample * player2_mix_level);
-                    bufferToFill.buffer->setSample(channel, sample, result);
-
-                }
             }
         }
     }
@@ -124,23 +124,23 @@ void MainComponent::resized()
     auto buttonArea = mixerArea.removeFromTop(25);
     mixerToggleButton.setBounds(buttonArea.reduced(10, 2));
 
-    // Mixer sliders area - side by side
+    // Mixer sliders syde by side
     auto slidersArea = mixerArea.reduced(10, 5);
 
-    // Smaller dimensions
+    // sliders dimensions
     int sliderHeight = 18;
     int labelWidth = 70;
     int sliderWidth = 120;
 
-    // Split area for two sliders side by side
+    // Split area for two sliders
     auto player1Area = slidersArea.removeFromLeft(getWidth() / 2);
     auto player2Area = slidersArea;
 
-    // Player 1 slider (left side)
+    // Player 1 slider
     auto player1SliderArea = player1Area.withSizeKeepingCentre(labelWidth + sliderWidth + 10, sliderHeight);
     player1_mix_label.setBounds(player1SliderArea.removeFromLeft(labelWidth));
     player1_mix_slider.setBounds(player1SliderArea.reduced(2, 0));
-
+    // Player 2 slider
     auto player2SliderArea = player2Area.withSizeKeepingCentre(labelWidth + sliderWidth + 10, sliderHeight);
     player2_mix_label.setBounds(player2SliderArea.removeFromLeft(labelWidth));
     player2_mix_slider.setBounds(player2SliderArea.reduced(2, 0));
@@ -159,7 +159,7 @@ void MainComponent::buttonClicked(Button* button) {
             mixerToggleButton.setButtonText("Mixer: ON");
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::cyan);
 
-            // Show mixer sliders when enabled
+            // Show mixer sliders
             player1_mix_slider.setVisible(true);
             player2_mix_slider.setVisible(true);
             player1_mix_label.setVisible(true);
@@ -169,7 +169,7 @@ void MainComponent::buttonClicked(Button* button) {
             mixerToggleButton.setButtonText("Mixer: OFF");
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::hotpink);
 
-            // Hide mixer sliders when disabled
+            // Hide mixer sliders
             player1_mix_slider.setVisible(false);
             player2_mix_slider.setVisible(false);
             player1_mix_label.setVisible(false);
@@ -177,7 +177,7 @@ void MainComponent::buttonClicked(Button* button) {
 
         }
 
-        // Trigger resizing to adjust layout
+        
         resized();
     }
 }
