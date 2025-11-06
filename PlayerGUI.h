@@ -79,15 +79,13 @@ private:
     juce::Image currentAlbumArt;
 
     // Waveform components
-    // thumbnail used for draing the waveform in paint
     AudioFormatManager formatManager;
-    //when i close a file then i open a new file and 
     AudioThumbnailCache thumbnailCache;
     AudioThumbnail audioThumbnail;
     bool fileLoaded;
 
     //waveform visualiser
-    AudioVisualiserComponent wave_form_visualiser;
+    AudioVisualiserComponent waveformVisualiser;
     // GUI elements
     ImageButton loadButton;
     ImageButton restart_PreviousButton;
@@ -106,8 +104,6 @@ private:
     double lengthInSeconds;
 
 
-    //TextButton removeButton{ "Remove" };
-    Slider positionSlider;
     Slider volumeSlider;
     Slider The_bar_pos;
     Slider speed_slider;
@@ -173,4 +169,5 @@ private:
 
     friend class MainComponent;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
+        //جديد
 };

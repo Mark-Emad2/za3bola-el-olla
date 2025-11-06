@@ -26,9 +26,13 @@ void PlayerGUI::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     playerAudio.getNextAudioBlock(bufferToFill);
 
-    playerAudio.getNextAudioBlock(bufferToFill);
-    const float* channelData = bufferToFill.buffer->getReadPointer(0);
-    wave_form_visualiser.pushBuffer(*bufferToFill.buffer);
+    // send audio data to waveform visualiser
+    if (bufferToFill.buffer->getNumChannels() > 0)
+    {
+        const float* channelData = bufferToFill.buffer->getReadPointer(0);
+
+        waveformVisualiser.pushBuffer(*bufferToFill.buffer);
+    }
 }
 
 void PlayerGUI::releaseResources()
@@ -37,24 +41,21 @@ void PlayerGUI::releaseResources()
 }
 
 PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
-    : thumbnailCache(5),// number of thumbnails to store
-    //num in fron for the details heiger lower detals lower heiger detais and slower generation
-    //audioThumbnail wave form reginerator
+    : thumbnailCache(5),
     audioThumbnail(512, formatManager, thumbnailCache),
     fileLoaded(false),
-    wave_form_visualiser(1)// 1 chanel waves don't overlap(two waves)
+    waveformVisualiser(1)
 {
-    addAndMakeVisible(wave_form_visualiser);
+    addAndMakeVisible(waveformVisualiser);
 
     addAndMakeVisible(albumArtComponent);
     albumArtComponent.setImagePlacement(juce::RectanglePlacement::centred);
 
-    wave_form_visualiser.setRepaintRate(60);
-    wave_form_visualiser.setBufferSize(512);//controles the size of the wave
-
-    // (اللون الأول هو الخلفية، والثاني هو الموجة)
+    waveformVisualiser.setRepaintRate(60);
+    waveformVisualiser.setBufferSize(512);
+    //waveformVisualiser.setSamplesPerBlock(256);
 // (اللون الأول هو الخلفية، والثاني هو الموجة)
-    wave_form_visualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
+    waveformVisualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
     //waveformVisualiser.setColours(juce::Colour(0xFF2E1C40), juce::Colours::cyan);
     // Add buttons
     formatManager.registerBasicFormats();
@@ -197,7 +198,9 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     speed_label.setJustificationType(Justification::centredRight);
     addAndMakeVisible(speed_label);
 
-    // Position slider
+
+
+    // bar slider
     The_bar_pos.addListener(this);
     addAndMakeVisible(The_bar_pos);
     The_bar_pos.setTextBoxStyle(juce::Slider::TextBoxLeft,
@@ -351,9 +354,8 @@ void PlayerGUI::resized()
     auto middleArea = bounds;
 
     const int waveformHeight = (int)juce::jlimit(minWaveformHeight, 200.0f, middleArea.getHeight() * waveformHeightPercent);
-    wave_form_visualiser.setBounds(middleArea.removeFromTop(waveformHeight));
+    waveformVisualiser.setBounds(middleArea.removeFromTop(waveformHeight));
 
-    positionSlider.setBounds(wave_form_visualiser.getBounds());
 
     middleArea.removeFromTop(spacing);
 
@@ -368,105 +370,6 @@ void PlayerGUI::resized()
 
     albumArtComponent.setBounds(contentArea);
 }
-
-
-//void PlayerGUI::resized()
-//{
-//    int margin = 10;
-//    int spacing = 8;
-//    int fullWidth = getWidth() - (2 * margin);
-//    // --- 1. تعريف ارتفاعات الأقسام ---
-//    int headerHeight = 60;
-//    int footerHeight = 140; // فوتر كبير عشان يشيل كل الزراير
-//    int liveWaveformHeight = 120; // ارتفاع الـ Waveform اللي شغالة
-//
-//    // --- 2. الهيدر (المعلومات وأزرار الملفات) ---
-//    int headerY = margin;
-//    int buttonWidth = 120;
-//
-//    infoLabel.setBounds(margin, headerY, fullWidth - (2 * buttonWidth) - (2 * spacing), headerHeight - (2 * margin));
-//    infoLabel.setColour(Label::backgroundColourId, Colours::darkgrey.withAlpha(0.2f));
-//    infoLabel.setColour(Label::textColourId, Colours::whitesmoke);
-//    infoLabel.setJustificationType(Justification::centred);
-//
-//    loadButton.setBounds(infoLabel.getRight() + spacing, headerY, buttonWidth, headerHeight - (2 * margin));
-//    addToPlaylistButton.setBounds(loadButton.getRight() + spacing, headerY, buttonWidth, headerHeight - (2 * margin));
-//
-//    // --- 4. الفوتر (كل أزرار التحكم والسلايدرز) ---
-//    int footerY = getHeight() - footerHeight - margin;
-//    int currentY_inFooter = footerY;
-//    int sliderHeight = 20;
-//    int buttonHeight = 35;
-//
-//    // الصف الأول في الفوتر: سلايدر الوقت
-//    int timeLabelWidth = 60; // وسعنا الليبل شوية عشان "00:00"
-//    int posSliderWidth = fullWidth - (2 * timeLabelWidth) - (2 * spacing);
-//
-//    poslabel.setBounds(margin, currentY_inFooter, timeLabelWidth, sliderHeight);
-//    The_bar_pos.setBounds(poslabel.getRight() + spacing, currentY_inFooter, posSliderWidth, sliderHeight);
-//    endPos.setBounds(The_bar_pos.getRight() + spacing, currentY_inFooter, timeLabelWidth, sliderHeight);
-//
-//    currentY_inFooter += sliderHeight + spacing; // انزل للصف التاني
-//
-//    // الصف الثاني في الفوتر: الأزرار والسلايدرز
-//    int footerControlsY = currentY_inFooter;
-//
-//    // الجزء اليمين (سلايدرز الصوت والسرعة)
-//    int slidersAreaWidth = fullWidth * 0.3; // 30% للـ Sliders
-//    int slidersAreaX = getWidth() - margin - slidersAreaWidth;
-//    int labelWidth = 50;
-//    int horizSliderWidth = slidersAreaWidth - labelWidth - spacing;
-//
-//    speed_label.setBounds(slidersAreaX, footerControlsY, labelWidth, sliderHeight);
-//    speed_slider.setBounds(speed_label.getRight() + spacing, footerControlsY, horizSliderWidth, sliderHeight);
-//
-//    volume_label.setBounds(slidersAreaX, footerControlsY + sliderHeight + spacing, labelWidth, sliderHeight);
-//    volumeSlider.setBounds(volume_label.getRight() + spacing, footerControlsY + sliderHeight + spacing, horizSliderWidth, sliderHeight);
-//
-//    // الجزء اللي في النص (أزرار التشغيل الرئيسية - 5 زراير)
-//    int mainControlsWidth = fullWidth * 0.4; // 40% للأزرار الرئيسية
-//    int mainControlsX = margin + (fullWidth - mainControlsWidth) / 2; // توسيط
-//    int numMainButtons = 5;
-//    int mainButtonWidth = (mainControlsWidth - (numMainButtons - 1) * spacing) / numMainButtons;
-//
-//    backButton.setBounds(mainControlsX, footerControlsY, mainButtonWidth, buttonHeight);
-//    restart_PreviousButton.setBounds(backButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
-//    Pause_PlayButton.setBounds(restart_PreviousButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight + 10); // زرار التشغيل أكبر
-//    EndButton.setBounds(Pause_PlayButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
-//    forwardButton.setBounds(EndButton.getRight() + spacing, footerControlsY, mainButtonWidth, buttonHeight);
-//
-//    // الجزء الشمال (الأزرار المساعدة - 4 زراير)
-//    int utilControlsWidth = fullWidth * 0.3; // الـ 30% الباقية
-//    int numUtilButtons = 4;
-//    int utilButtonWidth = (utilControlsWidth - (numUtilButtons - 1) * spacing) / numUtilButtons;
-//
-//    loopButton.setBounds(margin, footerControlsY, utilButtonWidth, buttonHeight);
-//    muteButton.setBounds(loopButton.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
-//    A_B_LOOP.setBounds(muteButton.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
-//    stopButton.setBounds(A_B_LOOP.getRight() + spacing, footerControlsY, utilButtonWidth, buttonHeight);
-//
-//
-//    // --- 3. المحتوى (الويف فورم والبلاي ليست) ---
-//    int middleY = headerY + (headerHeight - (2 * margin)) + spacing; // ابدأ بعد الهيدر
-//    int middleTotalHeight = (footerY - spacing) - middleY; // كل المساحة المتاحة في النص
-//
-//    // الـ Waveform الحية (والسلايدر المخفي فوقها للضغط)
-//    waveformVisualiser.setBounds(margin, middleY, fullWidth, liveWaveformHeight);
-//    positionSlider.setBounds(margin, middleY, fullWidth, liveWaveformHeight); // فوقها بالظبط
-//
-//    // قائمة التشغيل (تاخد باقي المساحة)
-//    int playlistY = waveformVisualiser.getBottom() + spacing;
-//    int playlistHeight = middleTotalHeight - liveWaveformHeight - spacing;
-//
-//    playlistBox.setBounds(margin, playlistY, fullWidth, playlistHeight);
-//    playlistBox.setColour(ListBox::backgroundColourId, Colours::darkslategrey.withAlpha(0.4f));
-//    playlistBox.setOutlineThickness(1);
-//    playlistBox.setColour(ListBox::outlineColourId, Colours::lightgrey.withAlpha(0.4f));
-//
-//
-//    // أنا شلت اللوب بتاعة تلوين الأزرار اللي كانت في الآخر
-//    // لأنك دلوقتي بتستخدم ImageButtons واللوب دي كانت لـ TextButtons
-//}
 
 
 
@@ -582,7 +485,7 @@ void PlayerGUI::updateLabel(const File& file)
     audioThumbnail.clear();
     audioThumbnail.setSource(new FileInputSource(file));
     fileLoaded = true;
-    wave_form_visualiser.clear();
+    waveformVisualiser.clear();
 }
 
 // save last session state
@@ -696,10 +599,7 @@ void PlayerGUI::sliderValueChanged(Slider* slider)
         float speedValue = (float)speed_slider.getValue();
         playerAudio.set_speed(speedValue);
     }
-    else if (slider == &positionSlider)
-    {
-        playerAudio.setPosition((float)slider->getValue());
-    }
+
 }
 
 
@@ -720,7 +620,6 @@ void PlayerGUI::timerCallback()
 
     double currentPos = playerAudio.getPosition();
     double totalLength = playerAudio.getLength();
-    positionSlider.setValue(currentPos, dontSendNotification); //------------>
 
     if (totalLength > 0 && currentPos >= totalLength)
     {
@@ -972,8 +871,8 @@ void PlayerGUI::playIndex(int row) {
             currentIndex = row;
 
 
-            playerAudio.clear_markers(); // <-- امسح الماركرز القديمة
-            markerBox.updateContent(); // بتاع الماركرز
+            playerAudio.clear_markers();
+            markerBox.updateContent();
 
 
 
@@ -983,7 +882,7 @@ void PlayerGUI::playIndex(int row) {
             saveLastState();
 
         }
-        else {          // if file not exist remove it from playlist
+        else {
             playlist.remove(row);
             playlistBox.updateContent();
             saveLastState();
@@ -999,15 +898,14 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
 {
     if (&slider == &The_bar_pos)
     {
-        // --- 1. ارسم الـ Track (الخلفية) ---
-        float trackHeight = 6.0f; // سمك الخط
-        float trackY = (float)y + ((float)height - trackHeight) * 0.5f; // توسطن الخط
+
+        float trackHeight = 6.0f;
+        float trackY = (float)y + ((float)height - trackHeight) * 0.5f;
         juce::Rectangle<float> trackBounds((float)x, trackY, (float)width, trackHeight);
 
         g.setColour(juce::Colours::darkgrey);
         g.fillRoundedRectangle(trackBounds, trackHeight * 0.5f);
 
-        // --- 2. ارسم الجزء المليان (Filled) ---
         float filledWidth = sliderPos - (float)x;
         if (filledWidth > 0)
         {
@@ -1016,15 +914,12 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             g.fillRoundedRectangle(filledBounds, trackHeight * 0.5f);
         }
 
-        // --- (اتنقلت فوق) دالة التحويل من "وقت" لـ "بكسل" ---
         auto valueToPixel = [&](double value) -> float
             {
                 double proportion = The_bar_pos.valueToProportionOfLength(value);
                 return juce::jmap((float)proportion, 0.0f, 1.0f, (float)x, (float)(x + width));
             };
-        // -----------------------------------------------
 
-        // --- 3. كود الـ A-B Loop (زي ما هو) ---
         float a_x_pos = 0.0f;
         float b_x_pos = 0.0f;
         bool hasA = false;
@@ -1064,29 +959,24 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             }
         }
 
-        // *********** (ده الكود الجديد) ***********
-        // --- 4. ارسم الماركرز (كنقطة تحت السلايدر) ---
+
         g.setColour(juce::Colours::cyan.withAlpha(0.7f)); // تغير لونmark
 
-        float dotDiameter = 7.0f; // <--- حجم النقطة
-        float dotMargin = 7.0f;   // <--- المسافة تحت الخط
+        float dotDiameter = 7.0f;
+        float dotMargin = 7.0f;
 
-        // نحسب الـ Y بتاع النقطة (تحت الخط + المسافة)
         float dotY = trackY + trackHeight + dotMargin;
 
         for (const auto& markerTime : playerAudio.get_markers())
         {
             float markerX = valueToPixel(markerTime);
 
-            // نرسم دايرة (نقطة)
-            g.fillEllipse(markerX - (dotDiameter / 2.0f), // X (متوسطن)
-                dotY,                         // Y (تحت الخط)
-                dotDiameter,                  // W
-                dotDiameter);                 // H
+            g.fillEllipse(markerX - (dotDiameter / 2.0f),
+                dotY,
+                dotDiameter,
+                dotDiameter);
         }
-        // ------------------------------------------------
 
-        // --- 5. ارسم الـ Thumb (المقبض اللي بيتحرك) ---
         float thumbWidth = 16.0f;
         float thumbHeight = 16.0f;
         float thumbX = sliderPos - (thumbWidth * 0.5f);
@@ -1100,7 +990,7 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
     }
     else
     {
-        // لو السلايدر ده مش The_bar_pos
+
         LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
     }
 }
@@ -1285,7 +1175,7 @@ void PlayerGUI::buttonClicked(Button* button)
             }
         }
         else
-        {// عشان لو مفيش بلاي ليست
+        {
             playerAudio.setPosition(playerAudio.getLength());
         }
     }
@@ -1336,10 +1226,10 @@ void PlayerGUI::buttonClicked(Button* button)
     else if (button == &addMarkerButton)
     {
         double currentPos = playerAudio.getPosition();
-        playerAudio.aad_marker(currentPos); // ضيف الماركر
-        markerBox.updateContent(); // حدث الليستة عشان الماركر الجديد يظهر
-        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1); // ينزل لأخر ماركر
-        The_bar_pos.repaint(); // <-- ضيف السطر ده
+        playerAudio.aad_marker(currentPos);
+        markerBox.updateContent();
+        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1);
+        The_bar_pos.repaint();
     }
 
 }
@@ -1371,7 +1261,7 @@ void MarkerListBoxModel::paintListBoxItem(int row, juce::Graphics& g, int width,
 
 void MarkerListBoxModel::listBoxItemClicked(int row, const juce::MouseEvent& e)
 {
-    if (e.mods.isPopupMenu()) 
+    if (e.mods.isPopupMenu())
     {
         juce::PopupMenu menu;
         menu.addItem(1, "Jump to this marker");
@@ -1379,11 +1269,11 @@ void MarkerListBoxModel::listBoxItemClicked(int row, const juce::MouseEvent& e)
         menu.addSeparator();
         menu.addItem(3, "Cancel");
 
-        
+
         menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(juce::Rectangle<int>(e.getScreenX(), e.getScreenY(), 1, 1)),
             [this, row](int result)
             {
-                if (result == 1) 
+                if (result == 1)
                 {
                     playerAudio.jump_to_marker(row);
                 }
@@ -1393,12 +1283,13 @@ void MarkerListBoxModel::listBoxItemClicked(int row, const juce::MouseEvent& e)
                     ownerBox.updateContent();
                     positionBar.repaint();
                 }
-               
             });
     }
     else
     {
-        playerAudio.jump_to_marker(row); 
+        playerAudio.jump_to_marker(row);
     }
+    //جديد
+
 }
 

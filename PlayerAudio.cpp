@@ -195,4 +195,6 @@ double PlayerAudio::get_marker_position(int index) const {
         return markers[index];
     }
     return -1.0;
+    //جديد
+
 }

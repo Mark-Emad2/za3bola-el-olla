@@ -1,4 +1,4 @@
-#pragma once						// MainComponent.h
+﻿#pragma once						// MainComponent.h
 #include <JuceHeader.h>
 #include "PlayerGUI.h"
 using namespace juce;
@@ -36,6 +36,10 @@ private:
     Slider player2_mix_slider;
     Label player1_mix_label;
     Label player2_mix_label;
+
+
+    //جديد
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -1,4 +1,4 @@
-#pragma once							// PlayerAudio.h
+﻿#pragma once							// PlayerAudio.h
 #include <JuceHeader.h>
 using namespace std;
 using namespace juce;
@@ -23,6 +23,7 @@ public:
     bool muted()const;
     void loop();
     bool isLooping() const;
+    float get_current_gain()const;
     bool isPlaying() const;
 
     File getCurrentFile() const;
@@ -60,4 +61,6 @@ private:
     File currentFile;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerAudio)
+        //جديد
+
 };

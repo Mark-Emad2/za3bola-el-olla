@@ -1,4 +1,4 @@
-#include "MainComponent.h"
+﻿#include "MainComponent.h"
 using namespace juce;
 using namespace std;
 //==============================================================================
@@ -45,7 +45,6 @@ MainComponent::MainComponent()
     player2_mix_label.setJustificationType(Justification::centredRight);
     player2_mix_label.attachToComponent(&player2_mix_slider, true);
     addAndMakeVisible(player2_mix_slider);
-
     player1_mix_slider.setColour(Slider::thumbColourId, Colours::cyan);
     player1_mix_slider.setColour(Slider::trackColourId, Colours::purple);
     player1_mix_slider.setColour(Slider::textBoxTextColourId, Colours::white);
@@ -87,15 +86,15 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
             for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
             {
 
+
                 for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
                 {
-                    // mix with individual levels
-                 //Waveform Superposition
                     float p1_sample = tempBuffer1.getSample(channel, sample);  // Function call + copy
                     float p2_sample = tempBuffer2.getSample(channel, sample);  // Function call + copy
                     float result = (p1_sample * player1_mix_level) +
                         (p2_sample * player2_mix_level);
                     bufferToFill.buffer->setSample(channel, sample, result);
+
                 }
             }
         }
@@ -160,7 +159,7 @@ void MainComponent::buttonClicked(Button* button) {
             mixerToggleButton.setButtonText("Mixer: ON");
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::cyan);
 
-            // show mixer sliders
+            // Show mixer sliders when enabled
             player1_mix_slider.setVisible(true);
             player2_mix_slider.setVisible(true);
             player1_mix_label.setVisible(true);
@@ -170,7 +169,7 @@ void MainComponent::buttonClicked(Button* button) {
             mixerToggleButton.setButtonText("Mixer: OFF");
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::hotpink);
 
-            // hide mixer sliders
+            // Hide mixer sliders when disabled
             player1_mix_slider.setVisible(false);
             player2_mix_slider.setVisible(false);
             player1_mix_label.setVisible(false);
@@ -310,7 +309,6 @@ bool MainComponent::keyPressed(const KeyPress& key)
         }
         return true;
     }
-    //hi
     // Previous song (P key)
     if (key.getKeyCode() == 'p' || key.getKeyCode() == 'P')
     {
@@ -342,5 +340,6 @@ bool MainComponent::keyPressed(const KeyPress& key)
     }
 
     return false;
+    //جديد
 
 }
