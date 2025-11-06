@@ -19,6 +19,34 @@ MainComponent::MainComponent()
     mixerToggleButton.setColour(ToggleButton::tickColourId, Colours::black);
     mixerToggleButton.setColour(ToggleButton::tickDisabledColourId, Colours::mediumpurple);
     addAndMakeVisible(mixerToggleButton);
+
+	// Player 1 Mix Slider
+    player1_mix_slider.setRange(0.0, 1.0, 0.01);
+    player1_mix_slider.setValue(0.5);
+    player1_mix_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20);
+    player1_mix_slider.setSliderStyle(Slider::LinearHorizontal);
+    player1_mix_slider.addListener(this);
+    addAndMakeVisible(player1_mix_slider);
+
+	// Player 1 Mix Label
+    player1_mix_label.setText("Player 1 Volume:", dontSendNotification);
+    player1_mix_label.setJustificationType(Justification::centredRight);
+    player1_mix_label.attachToComponent(&player1_mix_slider, true);
+    addAndMakeVisible(player1_mix_label);
+
+    player2_mix_slider.setRange(0.0, 1.0, 0.01);
+    player2_mix_slider.setValue(0.5);
+    player2_mix_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20);
+    player2_mix_slider.setSliderStyle(Slider::LinearHorizontal);
+    player2_mix_slider.addListener(this);
+    addAndMakeVisible(player2_mix_slider);
+
+    player2_mix_label.setText("Player 2 Volume:", dontSendNotification);
+    player2_mix_label.setJustificationType(Justification::centredRight);
+    player2_mix_label.attachToComponent(&player2_mix_slider, true);
+    addAndMakeVisible(player2_mix_slider);
+
+
 }
 MainComponent::~MainComponent()
 {
@@ -34,31 +62,38 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
 void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     if (mixer_enabled) {
-        // clear buffer
-        bufferToFill.clearActiveBufferRegion();
+        if (mixer_enabled) {
+            // clear the buffer
+            bufferToFill.clearActiveBufferRegion();
 
-        // make temp buffer for player2
-        AudioBuffer<float> tempBuffer(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
-        AudioSourceChannelInfo tempInfo(&tempBuffer, 0, bufferToFill.numSamples);
+            // make temp buffers for palyers
+            AudioBuffer<float> tempBuffer1(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
+            AudioBuffer<float> tempBuffer2(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
 
-        // player1 to output buffer
-        player1.getNextAudioBlock(bufferToFill);
+            AudioSourceChannelInfo tempInfo1(&tempBuffer1, 0, bufferToFill.numSamples);
+            AudioSourceChannelInfo tempInfo2(&tempBuffer2, 0, bufferToFill.numSamples);
 
-        // player2 to temporary buffer
-        player2.getNextAudioBlock(tempInfo);
+            // get audio from players
+            player1.getNextAudioBlock(tempInfo1);
+            player2.getNextAudioBlock(tempInfo2);
 
-        // mix audio
-        for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
-        {
-            auto* output = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
-            auto* player2Data = tempBuffer.getReadPointer(channel);
-
-            for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
+            // audio mixing
+            for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
             {
-                output[sample] += player2Data[sample] * 0.5f;
+                auto* output = bufferToFill.buffer->getWritePointer(channel, bufferToFill.startSample);
+                auto* player1Data = tempBuffer1.getReadPointer(channel);
+                auto* player2Data = tempBuffer2.getReadPointer(channel);
+
+                for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
+                {
+                    // mix with individual levels
+                    output[sample] = (player1Data[sample] * player1_mix_level) +
+                        (player2Data[sample] * player2_mix_level);
+                }
             }
         }
     }
+    //disable mixer
     else {
         player1.getNextAudioBlock(bufferToFill);
     }
@@ -71,20 +106,46 @@ void MainComponent::releaseResources()
     player1.releaseResources();
     player2.releaseResources();
 }
+
 void MainComponent::resized()
 {
     auto area = getLocalBounds();
 
-    // mixer button at the top
-    auto mixerArea = area.removeFromTop(40);
-    mixerToggleButton.setBounds(mixerArea.reduced(10, 5));
+    // Mixer button and sliders at the top
+    auto mixerArea = area.removeFromTop(60); // Even more compact
 
-    //split screen for two players
-    auto player1Area = area.removeFromLeft(getWidth() / 2);
-    auto player2Area = area;
+    // Mixer toggle button
+    auto buttonArea = mixerArea.removeFromTop(25);
+    mixerToggleButton.setBounds(buttonArea.reduced(10, 2));
 
-    player1.setBounds(player1Area.reduced(10));
-    player2.setBounds(player2Area.reduced(10));
+    // Mixer sliders area - side by side
+    auto slidersArea = mixerArea.reduced(10, 5);
+
+    // Smaller dimensions
+    int sliderHeight = 18;
+    int labelWidth = 70;
+    int sliderWidth = 120;
+
+    // Split area for two sliders side by side
+    auto player1Area = slidersArea.removeFromLeft(getWidth() / 2);
+    auto player2Area = slidersArea;
+
+    // Player 1 slider (left side)
+    auto player1SliderArea = player1Area.withSizeKeepingCentre(labelWidth + sliderWidth + 10, sliderHeight);
+    player1_mix_label.setBounds(player1SliderArea.removeFromLeft(labelWidth));
+    player1_mix_slider.setBounds(player1SliderArea.reduced(2, 0));
+
+    // Player 2 slider (right side)
+    auto player2SliderArea = player2Area.withSizeKeepingCentre(labelWidth + sliderWidth + 10, sliderHeight);
+    player2_mix_label.setBounds(player2SliderArea.removeFromLeft(labelWidth));
+    player2_mix_slider.setBounds(player2SliderArea.reduced(2, 0));
+
+    // Split screen for two players
+    auto player1PlayerArea = area.removeFromLeft(getWidth() / 2);
+    auto player2PlayerArea = area;
+
+    player1.setBounds(player1PlayerArea.reduced(10));
+    player2.setBounds(player2PlayerArea.reduced(10));
 }
 void MainComponent::buttonClicked(Button* button) {
     if (button == &mixerToggleButton) {
@@ -93,11 +154,37 @@ void MainComponent::buttonClicked(Button* button) {
         if (mixer_enabled) {
             mixerToggleButton.setButtonText("Mixer: ON");
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::black);
+
+            // Show mixer sliders when enabled
+            player1_mix_slider.setVisible(true);
+            player2_mix_slider.setVisible(true);
+            player1_mix_label.setVisible(true);
+            player2_mix_label.setVisible(true);
         }
         else {
             mixerToggleButton.setButtonText("Mixer: OFF");
             mixerToggleButton.setColour(ToggleButton::textColourId, Colours::purple);
+
+            // Hide mixer sliders when disabled
+            player1_mix_slider.setVisible(false);
+            player1_mix_slider.setVisible(false);
+            player1_mix_label.setVisible(false);
+            player2_mix_label.setVisible(false);
         }
+
+        // Trigger resizing to adjust layout
+        resized();
+    }
+}
+void MainComponent::sliderValueChanged(Slider* slider)
+{
+    if (slider == &player1_mix_slider)
+    {
+        player1_mix_level = (float)player1_mix_slider.getValue();
+    }
+    else if (slider == &player2_mix_slider)
+    {
+        player2_mix_level = (float)player2_mix_slider.getValue();
     }
 }
 bool MainComponent::keyPressed(const KeyPress& key)
@@ -202,6 +289,51 @@ bool MainComponent::keyPressed(const KeyPress& key)
         }
         return true;
     }
+    // Next song (N key)
+    if (key.getKeyCode() == 'n' || key.getKeyCode() == 'N')
+    {
+        if (ctrlPressed) {
+            player1.EndButton.triggerClick();
+            player2.EndButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.EndButton.triggerClick();
+        }
+        else {
+            player1.EndButton.triggerClick();
+        }
+        return true;
+    }
+	// Previous song (P key)
+    if (key.getKeyCode() == 'p' || key.getKeyCode() == 'P')
+    {
+        if (ctrlPressed) {
+            player1.restart_PreviousButton.triggerClick();
+            player2.restart_PreviousButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.restart_PreviousButton.triggerClick();
+        }
+        else {
+            player1.restart_PreviousButton.triggerClick();
+        }
+        return true;
+    }
+    if (key.getKeyCode() == 'k' || key.getKeyCode() == 'K') // marker (k)
+    {
+        if (ctrlPressed) {
+            player1.addMarkerButton.triggerClick();
+            player2.addMarkerButton.triggerClick();
+        }
+        else if (shiftPressed) {
+            player2.addMarkerButton.triggerClick();
+        }
+        else {
+            player1.addMarkerButton.triggerClick();
+        }
+        return true;
+    }
 
     return false;
+
 }
