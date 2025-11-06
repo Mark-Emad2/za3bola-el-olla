@@ -996,7 +996,7 @@ void PlayerGUI::playIndex(int row) {
             saveLastState();
 
         }
-        else {          // if file not exist remove it from playlis
+        else {          // if file not exist remove it from playlist
             playlist.remove(row);
             playlistBox.updateContent();
             saveLastState();
@@ -1012,8 +1012,8 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
 {
     if (&slider == &The_bar_pos)
     {
-        float trackHeight = 6.0f; 
-        float trackY = (float)y + ((float)height - trackHeight) * 0.5f;
+        float trackHeight = 6.0f;
+        float trackY = (float)y + ((float)height - trackHeight) * 0.5f; 
         juce::Rectangle<float> trackBounds((float)x, trackY, (float)width, trackHeight);
 
         g.setColour(juce::Colours::darkgrey);
@@ -1075,7 +1075,7 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
         g.setColour(juce::Colours::cyan.withAlpha(0.7f)); // تغير لونmark
 
         float dotDiameter = 7.0f; 
-        float dotMargin = 7.0f; // hkds
+        float dotMargin = 7.0f;   
 
         float dotY = trackY + trackHeight + dotMargin;
 
@@ -1084,9 +1084,9 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
             float markerX = valueToPixel(markerTime);
 
             g.fillEllipse(markerX - (dotDiameter / 2.0f), 
-                dotY,                      
-                dotDiameter,           
-                dotDiameter);             
+                dotY,                         
+                dotDiameter,                 
+                dotDiameter);              
         }
 
         float thumbWidth = 16.0f;
@@ -1102,7 +1102,6 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
     }
     else
     {
-        
         LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
     }
 }
@@ -1340,7 +1339,7 @@ void PlayerGUI::buttonClicked(Button* button)
         double currentPos = playerAudio.getPosition();
         playerAudio.aad_marker(currentPos); 
         markerBox.updateContent(); 
-        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1)
+        markerBox.scrollToEnsureRowIsOnscreen(playerAudio.get_markers().size() - 1); 
         The_bar_pos.repaint(); 
     }
 
@@ -1373,7 +1372,7 @@ void MarkerListBoxModel::paintListBoxItem(int row, juce::Graphics& g, int width,
 
 void MarkerListBoxModel::listBoxItemClicked(int row, const juce::MouseEvent& e)
 {
-    if (e.mods.isPopupMenu())
+    if (e.mods.isPopupMenu()) 
     {
         juce::PopupMenu menu;
         menu.addItem(1, "Jump to this marker");
@@ -1381,7 +1380,7 @@ void MarkerListBoxModel::listBoxItemClicked(int row, const juce::MouseEvent& e)
         menu.addSeparator();
         menu.addItem(3, "Cancel");
 
-      
+        
         menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(juce::Rectangle<int>(e.getScreenX(), e.getScreenY(), 1, 1)),
             [this, row](int result)
             {
