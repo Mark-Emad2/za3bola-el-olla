@@ -27,7 +27,7 @@ private:
     public:
         MainWindow(String name)
             : DocumentWindow(name,
-                Colours::lightgrey,
+                Colour(0xFF1A1A2A),
                 DocumentWindow::allButtons)
         {
             setUsingNativeTitleBar(true);

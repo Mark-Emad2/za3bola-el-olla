@@ -7,78 +7,18 @@ using namespace juce;
 class MarkerListBoxModel : public juce::ListBoxModel
 {
 public:
-    // 1. تعديل: ضيفنا ListBox& box
-    // عشان نقدر نخليه يعمل update لما نمسح
-    MarkerListBoxModel(PlayerAudio& audio, juce::ListBox& box, juce::Slider& bar)
-        : playerAudio(audio), ownerBox(box), positionBar(bar) {
-    }
+    MarkerListBoxModel(PlayerAudio& audio, juce::ListBox& box, juce::Slider& bar);
 
-    int getNumRows() override
-    {
-        return (int)playerAudio.get_markers().size();
-    }
+    int getNumRows() override;
 
-    void paintListBoxItem(int row, juce::Graphics& g, int width, int height, bool rowIsSelected) override
-    {
-        if (rowIsSelected)
-            g.fillAll(juce::Colours::cyan.withAlpha(0.5f));
-
-        double markerTime = playerAudio.get_marker_position(row);
-        int mins = (int)(markerTime / 60);
-        int secs = (int)(round(markerTime)) % 60;
-        juce::String timeText = juce::String(mins).paddedLeft('0', 2) + ":" + juce::String(secs).paddedLeft('0', 2);
-
-        g.setColour(juce::Colours::white);
-        g.drawText("Marker " + juce::String(row + 1) + " @ " + timeText,
-            5, 0, width - 10, height,
-            juce::Justification::centredLeft, true);
-    }
-
-    // 2. تعديل: ده الكود الجديد اللي بيفرق بين الكليكات
-    // الدالة دي هي اللي بتعمل كل الشغل
-    void listBoxItemClicked(int row, const juce::MouseEvent& e) override
-    {
-        if (e.mods.isPopupMenu()) // <-- لو المستخدم داس كليك يمين
-        {
-            juce::PopupMenu menu;
-            menu.addItem(1, "Jump to this marker");
-            menu.addItem(2, "Remove this marker");
-            menu.addSeparator();
-            menu.addItem(3, "Cancel");
-
-            // بنشغل القايمة
-           // السطر الصح
-            menu.showMenuAsync(juce::PopupMenu::Options().withTargetScreenArea(juce::Rectangle<int>(e.getScreenX(), e.getScreenY(), 1, 1)),
-                [this, row](int result)
-                {
-                    if (result == 1) // اختار "Jump"
-                    {
-                        playerAudio.jump_to_marker(row);
-                    }
-                    else if (result == 2) // اختار "Remove"
-                    {
-                        playerAudio.remove_marker(row);
-                        ownerBox.updateContent();
-                        positionBar.repaint();
-                    }
-                    // لو 3 أو 0 (Cancel) مش بنعمل حاجة
-                });
-        }
-        else // <-- لو المستخدم داس كليك شمال (عادي)
-        {
-            playerAudio.jump_to_marker(row); // اعمل jump علطول
-        }
-    }
+    void paintListBoxItem(int row, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
+    void listBoxItemClicked(int row, const juce::MouseEvent& e) override;
 
 private:
     PlayerAudio& playerAudio;
     juce::ListBox& ownerBox; // 3. تعديل: ضيفنا الريفرنس ده
     juce::Slider& positionBar;
 };
-
-
-
-
 
 
 

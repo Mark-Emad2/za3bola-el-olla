@@ -15,12 +15,12 @@ MainComponent::MainComponent()
     mixerToggleButton.setButtonText("Mixer: ON");
     mixerToggleButton.setToggleState(true, dontSendNotification);
     mixerToggleButton.addListener(this);
-    mixerToggleButton.setColour(ToggleButton::textColourId, Colours::black);
-    mixerToggleButton.setColour(ToggleButton::tickColourId, Colours::black);
+    mixerToggleButton.setColour(ToggleButton::textColourId, Colours::cyan);
+    mixerToggleButton.setColour(ToggleButton::tickColourId, Colours::cyan);
     mixerToggleButton.setColour(ToggleButton::tickDisabledColourId, Colours::mediumpurple);
     addAndMakeVisible(mixerToggleButton);
 
-	// Player 1 Mix Slider
+    // Player 1 Mix Slider
     player1_mix_slider.setRange(0.0, 1.0, 0.01);
     player1_mix_slider.setValue(0.5);
     player1_mix_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20);
@@ -28,7 +28,7 @@ MainComponent::MainComponent()
     player1_mix_slider.addListener(this);
     addAndMakeVisible(player1_mix_slider);
 
-	// Player 1 Mix Label
+    // Player 1 Mix Label
     player1_mix_label.setText("Player 1 Volume:", dontSendNotification);
     player1_mix_label.setJustificationType(Justification::centredRight);
     player1_mix_label.attachToComponent(&player1_mix_slider, true);
@@ -45,7 +45,12 @@ MainComponent::MainComponent()
     player2_mix_label.setJustificationType(Justification::centredRight);
     player2_mix_label.attachToComponent(&player2_mix_slider, true);
     addAndMakeVisible(player2_mix_slider);
-
+    player1_mix_slider.setColour(Slider::thumbColourId, Colours::cyan);
+    player1_mix_slider.setColour(Slider::trackColourId, Colours::purple);
+    player1_mix_slider.setColour(Slider::textBoxTextColourId, Colours::white);
+    player2_mix_slider.setColour(Slider::thumbColourId, Colours::cyan);
+    player2_mix_slider.setColour(Slider::trackColourId, Colours::purple);
+    player2_mix_slider.setColour(Slider::textBoxTextColourId, Colours::white);
 
 }
 MainComponent::~MainComponent()
@@ -135,12 +140,10 @@ void MainComponent::resized()
     player1_mix_label.setBounds(player1SliderArea.removeFromLeft(labelWidth));
     player1_mix_slider.setBounds(player1SliderArea.reduced(2, 0));
 
-    // Player 2 slider (right side)
     auto player2SliderArea = player2Area.withSizeKeepingCentre(labelWidth + sliderWidth + 10, sliderHeight);
     player2_mix_label.setBounds(player2SliderArea.removeFromLeft(labelWidth));
     player2_mix_slider.setBounds(player2SliderArea.reduced(2, 0));
 
-    // Split screen for two players
     auto player1PlayerArea = area.removeFromLeft(getWidth() / 2);
     auto player2PlayerArea = area;
 
@@ -153,7 +156,7 @@ void MainComponent::buttonClicked(Button* button) {
 
         if (mixer_enabled) {
             mixerToggleButton.setButtonText("Mixer: ON");
-            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::black);
+            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::cyan);
 
             // Show mixer sliders when enabled
             player1_mix_slider.setVisible(true);
@@ -163,13 +166,14 @@ void MainComponent::buttonClicked(Button* button) {
         }
         else {
             mixerToggleButton.setButtonText("Mixer: OFF");
-            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::purple);
+            mixerToggleButton.setColour(ToggleButton::textColourId, Colours::hotpink);
 
             // Hide mixer sliders when disabled
             player1_mix_slider.setVisible(false);
-            player1_mix_slider.setVisible(false);
+            player2_mix_slider.setVisible(false);
             player1_mix_label.setVisible(false);
             player2_mix_label.setVisible(false);
+
         }
 
         // Trigger resizing to adjust layout
@@ -304,7 +308,7 @@ bool MainComponent::keyPressed(const KeyPress& key)
         }
         return true;
     }
-	// Previous song (P key)
+    // Previous song (P key)
     if (key.getKeyCode() == 'p' || key.getKeyCode() == 'P')
     {
         if (ctrlPressed) {
