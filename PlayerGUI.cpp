@@ -1075,7 +1075,7 @@ void PlayerGUI::drawLinearSlider(Graphics& g, int x, int y, int width, int heigh
         g.setColour(juce::Colours::cyan.withAlpha(0.7f)); // تغير لونmark
 
         float dotDiameter = 7.0f; 
-        float dotMargin = 7.0f;
+        float dotMargin = 7.0f; // hkds
 
         float dotY = trackY + trackHeight + dotMargin;
 
