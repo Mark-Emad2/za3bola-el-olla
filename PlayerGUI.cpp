@@ -25,14 +25,8 @@ void PlayerGUI::safeButton_Colour(TextButton& btn, const String& text, const Col
 void PlayerGUI::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     playerAudio.getNextAudioBlock(bufferToFill);
-
-    // send audio data to waveform visualiser
-    if (bufferToFill.buffer->getNumChannels() > 0)
-    {
-        const float* channelData = bufferToFill.buffer->getReadPointer(0);
-
-        waveformVisualiser.pushBuffer(*bufferToFill.buffer);
-    }
+    const float* channelData = bufferToFill.buffer->getReadPointer(0);
+    wave_form_visualiser.pushBuffer(*bufferToFill.buffer);
 }
 
 void PlayerGUI::releaseResources()
@@ -41,22 +35,24 @@ void PlayerGUI::releaseResources()
 }
 
 PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
-    : thumbnailCache(5),
+    :thumbnailCache(5), // number of thumbnails to store
+    //num in fron for the details heiger lower detals lower heiger detais and slower generation
+    //audioThumbnail wave form reginerator
     audioThumbnail(512, formatManager, thumbnailCache),
-    fileLoaded(false),
-    waveformVisualiser(1)
+    file_loaded(false),
+	wave_form_visualiser(1)// 1 chanel waves don't overlap(two waves)
 {
-    addAndMakeVisible(waveformVisualiser);
+    addAndMakeVisible(wave_form_visualiser);
 
     addAndMakeVisible(albumArtComponent);
     albumArtComponent.setImagePlacement(juce::RectanglePlacement::centred);
 
-    waveformVisualiser.setRepaintRate(60);
-    waveformVisualiser.setBufferSize(512);
-    waveformVisualiser.setSamplesPerBlock(256);
+    wave_form_visualiser.setRepaintRate(60);
+    wave_form_visualiser.setBufferSize(512);//controles the size of the wave
+    
     // (اللون الأول هو الخلفية، والثاني هو الموجة)
 // (اللون الأول هو الخلفية، والثاني هو الموجة)
-    waveformVisualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
+    wave_form_visualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
     //waveformVisualiser.setColours(juce::Colour(0xFF2E1C40), juce::Colours::cyan);
     // Add buttons
     formatManager.registerBasicFormats();
@@ -202,13 +198,7 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     addAndMakeVisible(speed_label);
 
 
-    // Position slider - invisible but functional
-    positionSlider.addListener(this);
-    addAndMakeVisible(positionSlider);
-    positionSlider.setSliderStyle(Slider::LinearBar);
-    positionSlider.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
-    positionSlider.setAlpha(0.0f); // Make invisible
-
+   
 
     // Position slider
     The_bar_pos.addListener(this);
@@ -349,8 +339,7 @@ void PlayerGUI::resized()
 
     // أ. الصف العلوي في الجزء الأوسط: الـ Waveform Visualiser
     const int waveformHeight = jmax(80, jmin(150, (int)(middleArea.getHeight() * 0.35f)));
-    waveformVisualiser.setBounds(middleArea.removeFromTop(waveformHeight));
-    positionSlider.setBounds(waveformVisualiser.getBounds());
+    wave_form_visualiser.setBounds(middleArea.removeFromTop(waveformHeight));
 
     middleArea.removeFromTop(spacing * 2); // مسافة أكبر تحت الويف فورم
 
@@ -583,8 +572,8 @@ void PlayerGUI::updateLabel(const File& file)
 
     audioThumbnail.clear();
     audioThumbnail.setSource(new FileInputSource(file));
-    fileLoaded = true;
-    waveformVisualiser.clear();
+    file_loaded = true;
+    wave_form_visualiser.clear();
 }
 
 // save last session state

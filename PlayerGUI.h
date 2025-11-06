@@ -139,14 +139,17 @@ private:
     juce::Image currentAlbumArt;
 
     // Waveform components
+    // thumbnail used for draing the waveform in paint
     AudioFormatManager formatManager;
-    AudioThumbnailCache thumbnailCache;
+    //when i close a file then i open a new file and 
+	AudioThumbnailCache thumbnailCache;
     AudioThumbnail audioThumbnail;
-    bool fileLoaded;
+    
+    bool file_loaded;
 
     //waveform visualiser
-    AudioVisualiserComponent waveformVisualiser;
-    // GUI elements
+    AudioVisualiserComponent wave_form_visualiser;
+    // GUI elementsthis stile contain a low resuletion version of the first
     ImageButton loadButton;
     ImageButton restart_PreviousButton;
     ImageButton stopButton;
