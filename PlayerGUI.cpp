@@ -26,13 +26,9 @@ void PlayerGUI::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
 {
     playerAudio.getNextAudioBlock(bufferToFill);
 
-    // send audio data to waveform visualiser
-    if (bufferToFill.buffer->getNumChannels() > 0)
-    {
-        const float* channelData = bufferToFill.buffer->getReadPointer(0);
-
-        waveformVisualiser.pushBuffer(*bufferToFill.buffer);
-    }
+    playerAudio.getNextAudioBlock(bufferToFill);
+    const float* channelData = bufferToFill.buffer->getReadPointer(0);
+    wave_form_visualiser.pushBuffer(*bufferToFill.buffer);
 }
 
 void PlayerGUI::releaseResources()
@@ -41,10 +37,12 @@ void PlayerGUI::releaseResources()
 }
 
 PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
-    : thumbnailCache(5),
+    : thumbnailCache(5),// number of thumbnails to store
+    //num in fron for the details heiger lower detals lower heiger detais and slower generation
+    //audioThumbnail wave form reginerator
     audioThumbnail(512, formatManager, thumbnailCache),
     fileLoaded(false),
-    waveformVisualiser(1)
+    waveformVisualiser(1)// 1 chanel waves don't overlap(two waves)
 {
     addAndMakeVisible(waveformVisualiser);
 
@@ -52,8 +50,8 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     albumArtComponent.setImagePlacement(juce::RectanglePlacement::centred);
 
     waveformVisualiser.setRepaintRate(60);
-    waveformVisualiser.setBufferSize(512);
-    waveformVisualiser.setSamplesPerBlock(256);
+    waveformVisualiser.setBufferSize(512);//controles the size of the wave
+
     // (اللون الأول هو الخلفية، والثاني هو الموجة)
 // (اللون الأول هو الخلفية، والثاني هو الموجة)
     waveformVisualiser.setColours(juce::Colour(46, 28, 64), juce::Colours::cyan);
@@ -200,15 +198,6 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
     speed_label.setText("Speed:", dontSendNotification);
     speed_label.setJustificationType(Justification::centredRight);
     addAndMakeVisible(speed_label);
-
-
-    // Position slider - invisible but functional
-    positionSlider.addListener(this);
-    addAndMakeVisible(positionSlider);
-    positionSlider.setSliderStyle(Slider::LinearBar);
-    positionSlider.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
-    positionSlider.setAlpha(0.0f); // Make invisible
-
 
     // Position slider
     The_bar_pos.addListener(this);

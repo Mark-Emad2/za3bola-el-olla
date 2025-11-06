@@ -23,7 +23,6 @@ public:
     bool muted()const;
     void loop();
     bool isLooping() const;
-    float get_current_gain()const;
     bool isPlaying() const;
 
     File getCurrentFile() const;
