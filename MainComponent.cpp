@@ -60,8 +60,13 @@ MainComponent::~MainComponent()
 
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-    player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
-    player2.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    if (mixer_enabled) {
+        player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
+        player2.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    }
+    else {
+        player1.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    }
 }
 
 void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill)
@@ -71,15 +76,16 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
         bufferToFill.clearActiveBufferRegion();
 
         // make temp buffers for palyers
-        AudioBuffer<float> tempBuffer1(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);//buffer to fill main out put provider .buffer acual object
-        AudioBuffer<float> tempBuffer2(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
+        //use same buffer playrs audio override each other
+        AudioBuffer<float> temp_buffer1(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);//buffer to fill main out put provider .buffer acual object
+        AudioBuffer<float> temp_buffer2(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
 
-        AudioSourceChannelInfo tempInfo1(&tempBuffer1, 0, bufferToFill.numSamples);//0 start index 
-        AudioSourceChannelInfo tempInfo2(&tempBuffer2, 0, bufferToFill.numSamples);
+        AudioSourceChannelInfo temp_info1(&temp_buffer1, 0, bufferToFill.numSamples);//0 start index 
+        AudioSourceChannelInfo temp_info2(&temp_buffer2, 0, bufferToFill.numSamples);
 
         // get audio from players
-        player1.getNextAudioBlock(tempInfo1);
-        player2.getNextAudioBlock(tempInfo2);
+        player1.getNextAudioBlock(temp_info1);
+        player2.getNextAudioBlock(temp_info2);
 
         // audio mixing
         for (int channel = 0; channel < bufferToFill.buffer->getNumChannels(); ++channel)
@@ -89,9 +95,9 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
             for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
             {
                 // mix with individual levels
-               //Waveform Superposition
-                float p1_sample = tempBuffer1.getSample(channel, sample);
-                float p2_sample = tempBuffer2.getSample(channel, sample);
+                //Waveform Superposition
+                float p1_sample = temp_buffer1.getSample(channel, sample);
+                float p2_sample = temp_buffer2.getSample(channel, sample);
                 float result = (p1_sample * player1_mix_level) +
                     (p2_sample * player2_mix_level);
                 bufferToFill.buffer->setSample(channel, sample, result);
@@ -99,11 +105,15 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
             }
         }
     }
-    //disable mixer
     else {
         player1.getNextAudioBlock(bufferToFill);
-    }
 
+        //every ting works in player 2 put audio does n't come out
+        AudioBuffer<float> dummy_buffer(bufferToFill.buffer->getNumChannels(), bufferToFill.numSamples);
+        AudioSourceChannelInfo dummy_info(&dummy_buffer, 0, bufferToFill.numSamples);
+        player2.getNextAudioBlock(dummy_info);
+    }
+  
 }
 
 
