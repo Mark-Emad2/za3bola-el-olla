@@ -105,6 +105,7 @@ void MainComponent::getNextAudioBlock(const AudioSourceChannelInfo& bufferToFill
             }
         }
     }
+    //hi
     else {
         player1.getNextAudioBlock(bufferToFill);
 
