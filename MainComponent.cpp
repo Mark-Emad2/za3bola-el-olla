@@ -129,7 +129,7 @@ void MainComponent::resized()
     auto area = getLocalBounds();
 
     // Mixer button and sliders at the top
-    auto mixerArea = area.removeFromTop(60); // Even more compact
+    auto mixerArea = area.removeFromTop(60); 
 
     // Mixer toggle button
     auto buttonArea = mixerArea.removeFromTop(25);
@@ -143,11 +143,9 @@ void MainComponent::resized()
     int labelWidth = 70;
     int sliderWidth = 120;
 
-    // Split area for two sliders
     auto player1Area = slidersArea.removeFromLeft(getWidth() / 2);
     auto player2Area = slidersArea;
 
-    // Player 1 slider
     auto player1SliderArea = player1Area.withSizeKeepingCentre(labelWidth + sliderWidth + 10, sliderHeight);
     player1_mix_label.setBounds(player1SliderArea.removeFromLeft(labelWidth));
     player1_mix_slider.setBounds(player1SliderArea.reduced(2, 0));

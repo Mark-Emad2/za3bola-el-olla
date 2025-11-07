@@ -78,10 +78,8 @@ private:
     juce::ImageComponent albumArtComponent;
     juce::Image currentAlbumArt;
 
-    // Waveform components
-    // thumbnail used for draing the waveform in paint
+ 
     AudioFormatManager formatManager;
-    //when i close a file then i open a new file and
     AudioThumbnailCache thumbnailCache;
     AudioThumbnail audioThumbnail;
     bool file_loaded;

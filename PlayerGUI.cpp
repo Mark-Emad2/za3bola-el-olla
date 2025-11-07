@@ -95,13 +95,11 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
         addMarkerImage, 1.0f, Colours::transparentBlack);
 
 
-    // 3. ظبط الـ playlistBox (زي ما هي)
-    playlistBox.setModel(this); // <-- دي بتستخدم الكلاس الكبير
+=    playlistBox.setModel(this); 
     addAndMakeVisible(playlistBox);
 
-    // 4. ظبط الـ markerBox (ده الجديد)
-    markerModel = std::make_unique<MarkerListBoxModel>(playerAudio, markerBox, The_bar_pos);
-    markerBox.setModel(markerModel.get()); // <-- بنربط الليست بوكس بالمودل بتاعها
+=    markerModel = std::make_unique<MarkerListBoxModel>(playerAudio, markerBox, The_bar_pos);
+    markerBox.setModel(markerModel.get()); 
     addAndMakeVisible(markerBox);
     markerBox.setOutlineThickness(1);
 
@@ -175,7 +173,7 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
 
     volumeSlider.setRange(0, 100, 1);
     volumeSlider.setValue(50);
-    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight, // <--- تم التغيير
+    volumeSlider.setTextBoxStyle(juce::Slider::TextBoxRight,
         false,
         60,
         20);
@@ -187,9 +185,9 @@ PlayerGUI::PlayerGUI(const juce::String& sessionFileName)
 
     speed_slider.setRange(0.25, 2.0, 0.25);
     speed_slider.setValue(1.0);
-    speed_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20); // <-- اتعدلت أهي
+    speed_slider.setTextBoxStyle(Slider::TextBoxRight, false, 60, 20); 
     speed_slider.setTextValueSuffix("x");
-    speed_slider.setSliderStyle(Slider::LinearHorizontal); // <-- أفقي
+    speed_slider.setSliderStyle(Slider::LinearHorizontal); 
     speed_slider.addListener(this);
     addAndMakeVisible(speed_slider);
 
@@ -239,7 +237,6 @@ PlayerGUI::~PlayerGUI()
 
 void PlayerGUI::resized()
 {
-    // --- 1. ثوابت التصميم (كلاسيك نضيف - متأمن ضد الإيرور) ---
     const int margin = 10;
     const int spacing = 8;
 
@@ -247,10 +244,9 @@ void PlayerGUI::resized()
     const int headerHeight = 109;
     const int footerHeight = 100;
     const int timeSliderHeight = 35;
-    const int mainButtonHeight = 45;      // الأزرار المهمة
-    const int utilItemHeight = 30;        // الزراير الفرعية
+    const int mainButtonHeight = 45;      
+    const int utilItemHeight = 30;        
 
-    // --- النسب ---
     const float waveformHeightPercent = 0.35f;
     const float rightColumnWidthPercent = 0.30f;
     const float playlistHeightPercent = 0.60f;
@@ -259,12 +255,9 @@ void PlayerGUI::resized()
     const float footerLeftPercent = 0.30f;
     const float footerRightPercent = 0.33f;
 
-    // ---------------------------------------------------------
-    // --- 2. التقسيم الرئيسي ---
-    // ---------------------------------------------------------
+   
     auto bounds = getLocalBounds().reduced(margin);
 
-    // --- 3. الهيدر ---
     auto headerArea = bounds.removeFromTop(headerHeight);
     const int headerButtonWidth = 60;
     auto addPlaylistButtonArea = headerArea.removeFromRight(headerButtonWidth);
@@ -276,20 +269,17 @@ void PlayerGUI::resized()
 
     bounds.removeFromTop(spacing * 2);
 
-    // --- 4. الفوتر ---
-    auto footerArea = bounds.removeFromBottom(footerHeight); // 100px
+    auto footerArea = bounds.removeFromBottom(footerHeight); 
 
-    // أ. الصف الأول: سلايدر الوقت
-    auto timeSliderRow = footerArea.removeFromTop(timeSliderHeight); // 30px
+    auto timeSliderRow = footerArea.removeFromTop(timeSliderHeight); 
     const int timeLabelWidth = 60;
     poslabel.setBounds(timeSliderRow.removeFromLeft(timeLabelWidth));
     endPos.setBounds(timeSliderRow.removeFromRight(timeLabelWidth));
     The_bar_pos.setBounds(timeSliderRow.reduced(spacing, 0));
 
-    footerArea.removeFromTop(spacing * 2); // مسافة 16px (الباقي 54px)
+    footerArea.removeFromTop(spacing * 2); 
 
-    // ب. الصف الثاني: الأزرار
-    auto mainControlsRow = footerArea; // ارتفاعه 54px
+    auto mainControlsRow = footerArea; 
 
     auto leftControlsArea = mainControlsRow.removeFromLeft(mainControlsRow.getWidth() * footerLeftPercent);
     mainControlsRow.removeFromLeft(spacing);
@@ -297,7 +287,6 @@ void PlayerGUI::resized()
     mainControlsRow.removeFromRight(spacing);
     auto centerPlaybackArea = mainControlsRow;
 
-    // -- 1. رص الأزرار المركزية (المهمة) --
     const int playPauseButtonWidth = (int)(mainButtonHeight * 1.5f);
 
     const int otherMainButtonWidth = juce::jmax(1, (int)((centerPlaybackArea.getWidth() - playPauseButtonWidth - (spacing * 4)) / 4));
@@ -315,11 +304,9 @@ void PlayerGUI::resized()
     x += otherMainButtonWidth + spacing;
     forwardButton.setBounds(x, y, otherMainButtonWidth, mainButtonHeight);
 
-    // -- 2. رص الأزرار الشمالية (الفرعية) --
     const int numSmallButtons = 5;
 
-    // *********** التصليح الثاني ***********
-    // (juce::jmax) عشان العرض ميبقاش سالب أبداً
+
     const int smallButtonWidth = juce::jmax(1, (leftControlsArea.getWidth() - (spacing * (numSmallButtons - 1))) / numSmallButtons);
 
     x = leftControlsArea.getX();
@@ -335,9 +322,8 @@ void PlayerGUI::resized()
     x += smallButtonWidth + spacing;
     addMarkerButton.setBounds(x, y, smallButtonWidth, utilItemHeight);
 
-    // -- 3. رص السلايدرز اليمين (الفرعية) --
     const int sliderLabelWidth = 55;
-    const int sliderHeight = (rightSlidersArea.getHeight() - spacing) / 2; // (ارتفاعه 23)
+    const int sliderHeight = (rightSlidersArea.getHeight() - spacing) / 2;
 
     auto volumeSliderArea = rightSlidersArea.removeFromTop(sliderHeight);
     volume_label.setBounds(volumeSliderArea.removeFromLeft(sliderLabelWidth));
@@ -345,12 +331,11 @@ void PlayerGUI::resized()
 
     rightSlidersArea.removeFromTop(spacing);
 
-    auto speedSliderArea = rightSlidersArea.removeFromTop(sliderHeight); // الباقي (23)
+    auto speedSliderArea = rightSlidersArea.removeFromTop(sliderHeight); 
     speed_label.setBounds(speedSliderArea.removeFromLeft(sliderLabelWidth));
     speed_slider.setBounds(speedSliderArea.reduced(spacing, 0));
 
 
-    // --- 5. الجزء الأوسط ---
     auto middleArea = bounds;
 
     const int waveformHeight = (int)juce::jlimit(minWaveformHeight, 200.0f, middleArea.getHeight() * waveformHeightPercent);
@@ -433,7 +418,7 @@ Image loadCoverArt(const juce::File& file)
         }
     }
 
-    // لو الخطتين فشلوا، رجع صورة فاضية
+    // لو الخطتين فشلوا رجع صورة فاضية
     return Image();
 }
 
@@ -1047,7 +1032,7 @@ void PlayerGUI::buttonClicked(Button* button)
             File{},
             "*.wav;*.mp3");
         fileChooser->launchAsync(
-            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::canSelectMultipleItems, // <--- هو ده السطر الجديد
+            FileBrowserComponent::openMode | FileBrowserComponent::canSelectFiles | FileBrowserComponent::canSelectMultipleItems, 
             [this](const FileChooser& fc)
             {
                 auto results = fc.getResults();
